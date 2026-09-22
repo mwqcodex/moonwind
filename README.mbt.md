@@ -46,6 +46,55 @@ ACK 0623 1108+05 2805+03 3010+00 2642-10 2648-20 266535 256945 257756
 which reads as: `ABR` at 3,000 ft, wind 150° at 19 kt; at 24,000 ft, 160° at
 12 kt and −25 °C; at 30,000 ft, 260° at 7 kt and −39 °C.
 
+## Between the levels
+
+A bulletin forecasts a handful of levels, and a flight plan wants the altitude
+it will actually fly, which usually falls between two of them. A station
+answers for any altitude between the levels it reports:
+
+```moonbit nocheck
+///|
+let wind = station.vector_at(4500).unwrap()
+
+///|
+let temperature = station.temperature_at(7500) // Some(4.5)
+
+///|
+let reported = station.vector_at(4500).unwrap().to_wind() // rounded to whole numbers
+```
+
+The wind is interpolated as a vector rather than as a direction and a speed,
+because a wind does not turn evenly between two levels: `LOU` goes from 70° at
+13 kt at 3,000 ft to 260° at 9 kt at 6,000 ft, and half way between them the
+two nearly cancel, leaving 2.2 kt from 49° — not the 165° at 11 kt that
+averaging the numbers alone would give. A light and variable level counts as
+no wind at all.
+
+`WindVector` is a wind as a velocity vector, `u` east and `v` north in knots,
+with `direction`, `speed` and `to_wind` to read a report back off it.
+
+Nothing is extrapolated: an altitude above the highest or below the lowest
+level a station reports is answered with `None`, and stations do not all
+report the same levels. `DEN`, high in the Rockies, starts at 9,000 ft because
+the levels below it are under the ground; the 3,000 ft column never carries a
+temperature, so `temperature_at` starts at 6,000 ft.
+
+## Units and the standard atmosphere
+
+The data model keeps the units the bulletins are written in — knots, feet,
+degrees Celsius — and `units.mbt` converts them: knots to metres per second,
+kilometres per hour or miles per hour, feet to metres, Celsius to Fahrenheit.
+It also carries the standard atmosphere, which is what a reported temperature
+is read against:
+
+```moonbit nocheck
+///|
+let standard = @moonwind.isa_temperature(24000.0) // -32.5488
+
+///|
+let deviation = @moonwind.isa_deviation(-25.0, 24000.0) // 7.5488, warmer than standard
+```
+
 ## Testing
 
 ```
@@ -60,5 +109,6 @@ build by `scripts/gen_fixtures.py`:
 python scripts/gen_fixtures.py > fd_fixtures_wbtest.mbt
 ```
 
-They cover the decode rules, the golden values of specific stations, and a
-byte-for-byte round trip of every product.
+They cover the decode rules, the golden values of specific stations, a
+byte-for-byte round trip of every product, and the interpolation, conversion
+and standard-atmosphere values quoted above.

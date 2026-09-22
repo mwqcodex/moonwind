@@ -2,6 +2,8 @@
 package "MWQCODEX/moonwind"
 
 // Values
+pub fn celsius_to_fahrenheit(Double) -> Double
+
 pub fn decode_wind(String) -> Wind raise FdError
 
 pub fn encode_level(Level) -> String raise FdError
@@ -10,11 +12,33 @@ pub fn encode_temperature(Int, Int) -> String raise FdError
 
 pub fn encode_wind(Wind) -> String raise FdError
 
+pub fn fahrenheit_to_celsius(Double) -> Double
+
+pub fn feet_to_meters(Double) -> Double
+
 pub fn field_layout(Array[Int]) -> Array[(Int, Int)]
 
 pub fn format_bulletin(Bulletin) -> String raise FdError
 
 pub fn format_station(StationWinds, Array[Int]) -> String raise FdError
+
+pub fn isa_deviation(Double, Double) -> Double
+
+pub fn isa_temperature(Double) -> Double
+
+pub fn kilometers_per_hour_to_knots(Double) -> Double
+
+pub fn knots_to_kilometers_per_hour(Double) -> Double
+
+pub fn knots_to_meters_per_second(Double) -> Double
+
+pub fn knots_to_miles_per_hour(Double) -> Double
+
+pub fn meters_per_second_to_knots(Double) -> Double
+
+pub fn meters_to_feet(Double) -> Double
+
+pub fn miles_per_hour_to_knots(Double) -> Double
 
 pub fn parse_bulletin(String) -> Bulletin raise FdError
 
@@ -57,9 +81,14 @@ pub struct StationWinds {
   station : String
   levels : Array[Level]
 }
+pub fn StationWinds::altitudes(Self) -> Array[Int]
+pub fn StationWinds::highest_altitude(Self) -> Int?
 pub fn StationWinds::level_at(Self, Int) -> Level?
 pub fn StationWinds::levels(Self) -> Array[Level]
+pub fn StationWinds::lowest_altitude(Self) -> Int?
 pub fn StationWinds::station(Self) -> String
+pub fn StationWinds::temperature_at(Self, Int) -> Double?
+pub fn StationWinds::vector_at(Self, Int) -> WindVector?
 
 pub struct Wind {
   direction : Int?
@@ -68,6 +97,19 @@ pub struct Wind {
 pub fn Wind::direction(Self) -> Int?
 pub fn Wind::is_light_and_variable(Self) -> Bool
 pub fn Wind::speed(Self) -> Int
+
+pub struct WindVector {
+  u : Double
+  v : Double
+}
+pub fn WindVector::direction(Self) -> Double
+pub fn WindVector::from_components(Double, Double) -> Self
+pub fn WindVector::from_wind(Wind) -> Self
+pub fn WindVector::interpolate(Self, Self, Double) -> Self
+pub fn WindVector::speed(Self) -> Double
+pub fn WindVector::to_wind(Self) -> Wind
+pub fn WindVector::u(Self) -> Double
+pub fn WindVector::v(Self) -> Double
 
 // Type aliases
 

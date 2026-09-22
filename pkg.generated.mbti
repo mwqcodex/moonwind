@@ -1,0 +1,74 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "MWQCODEX/moonwind"
+
+// Values
+pub fn decode_wind(String) -> Wind raise FdError
+
+pub fn encode_level(Level) -> String raise FdError
+
+pub fn encode_temperature(Int, Int) -> String raise FdError
+
+pub fn encode_wind(Wind) -> String raise FdError
+
+pub fn field_layout(Array[Int]) -> Array[(Int, Int)]
+
+pub fn format_bulletin(Bulletin) -> String raise FdError
+
+pub fn format_station(StationWinds, Array[Int]) -> String raise FdError
+
+pub fn parse_bulletin(String) -> Bulletin raise FdError
+
+// Errors
+pub suberror FdError {
+  MissingLevelHeader
+  BadLevelHeader(String)
+  BadStationLine(String)
+  BadWindGroup(String)
+  BadTemperature(String)
+}
+
+// Types and methods
+pub struct Bulletin {
+  header : Array[String]
+  level_header : String
+  altitudes : Array[Int]
+  wmo_header : String?
+  designator : String?
+  based_on : String?
+  valid : String?
+  use_window : String?
+  temps_negative_above : Int?
+  stations : Array[StationWinds]
+  trailing : Array[String]
+}
+pub fn Bulletin::station(Self, String) -> StationWinds?
+pub fn Bulletin::stations(Self) -> Array[StationWinds]
+
+pub struct Level {
+  altitude : Int
+  wind : Wind
+  temperature : Int?
+}
+pub fn Level::altitude(Self) -> Int
+pub fn Level::temperature(Self) -> Int?
+pub fn Level::wind(Self) -> Wind
+
+pub struct StationWinds {
+  station : String
+  levels : Array[Level]
+}
+pub fn StationWinds::level_at(Self, Int) -> Level?
+pub fn StationWinds::levels(Self) -> Array[Level]
+pub fn StationWinds::station(Self) -> String
+
+pub struct Wind {
+  direction : Int?
+  speed : Int
+}
+pub fn Wind::direction(Self) -> Int?
+pub fn Wind::is_light_and_variable(Self) -> Bool
+pub fn Wind::speed(Self) -> Int
+
+// Type aliases
+
+// Traits

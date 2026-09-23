@@ -1,0 +1,48 @@
+name: CI
+
+# Everything the module claims: it compiles without warnings, it is formatted,
+# its checked-in interfaces match the source, its tests pass, and its
+# benchmarks run. Each of these also runs locally with the same commands.
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # The toolchain the module is written and tested against. The generated
+      # interfaces and the warning list are pinned to it, so a bump belongs in
+      # a commit of its own.
+      MOONBIT_VERSION: "0.1.20260915"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "$MOONBIT_VERSION"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: Toolchain
+        run: moon version --all
+
+      - name: Check
+        run: moon check --deny-warn
+
+      - name: Formatting
+        run: moon fmt --check
+
+      - name: Generated interfaces
+        run: |
+          moon info
+          git diff --exit-code
+
+      - name: Tests
+        run: moon test
+
+      # The target is wasm, as the module declares, so no C toolchain is
+      # needed and the numbers stay comparable with the local run.
+      - name: Benchmarks
+        run: moon bench --release --target wasm

@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "MWQCODEX/moonwind"
 
+import {
+  "moonbitlang/core/hashmap",
+}
+
 // Values
 pub fn celsius_to_fahrenheit(Double) -> Double
 
@@ -70,6 +74,7 @@ pub struct Bulletin {
   use_window : String?
   temps_negative_above : Int?
   stations : Array[StationWinds]
+  index : @hashmap.HashMap[String, StationWinds]
   trailing : Array[String]
 }
 pub fn Bulletin::altitudes(Self) -> Array[Int]

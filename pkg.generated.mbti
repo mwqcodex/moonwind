@@ -72,8 +72,15 @@ pub struct Bulletin {
   stations : Array[StationWinds]
   trailing : Array[String]
 }
+pub fn Bulletin::altitudes(Self) -> Array[Int]
+pub fn Bulletin::based_on(Self) -> String?
+pub fn Bulletin::designator(Self) -> String?
 pub fn Bulletin::station(Self, String) -> StationWinds?
 pub fn Bulletin::stations(Self) -> Array[StationWinds]
+pub fn Bulletin::temps_negative_above(Self) -> Int?
+pub fn Bulletin::use_window(Self) -> String?
+pub fn Bulletin::valid(Self) -> String?
+pub fn Bulletin::wmo_header(Self) -> String?
 
 pub struct Coordinate {
   latitude : Double
@@ -179,6 +186,7 @@ pub struct Wind {
 }
 pub fn Wind::direction(Self) -> Int?
 pub fn Wind::is_light_and_variable(Self) -> Bool
+pub fn Wind::new(Int?, Int) -> Self
 pub fn Wind::speed(Self) -> Int
 
 pub struct WindTriangle {

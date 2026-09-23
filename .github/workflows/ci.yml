@@ -12,17 +12,15 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      # The toolchain the module is written and tested against. The generated
-      # interfaces and the warning list are pinned to it, so a bump belongs in
-      # a commit of its own.
-      MOONBIT_VERSION: "0.1.20260915"
     steps:
       - uses: actions/checkout@v4
 
+      # The installer serves `latest` and `nightly` only: asking for a version
+      # by name downloads a path the CDN answers 403 for, so the toolchain is
+      # not pinned, and the version in use is recorded by the next step.
       - name: Install MoonBit
         run: |
-          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash -s -- "$MOONBIT_VERSION"
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
 
       - name: Toolchain

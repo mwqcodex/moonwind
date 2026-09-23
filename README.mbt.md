@@ -95,6 +95,53 @@ let standard = @moonwind.isa_temperature(24000.0) // -32.5488
 let deviation = @moonwind.isa_deviation(-25.0, 24000.0) // 7.5488, warmer than standard
 ```
 
+## The wind triangle
+
+The wind that is forecast is not the wind the aeroplane flies through: it
+carries the aircraft with it. `WindTriangle::solve` takes the course to make
+good, the true airspeed and the wind, and gives back the heading to steer, the
+ground speed that results, and the components a pilot reads a wind in:
+
+```moonbit nocheck
+///|
+let triangle = @moonwind.WindTriangle::solve(90.0, 120.0, wind)
+
+///|
+let heading = triangle.heading()          // 097.99°, course plus the correction
+
+///|
+let ground_speed = triangle.ground_speed() // 111.01 kt
+```
+
+A headwind is positive when it comes from ahead, so a tailwind is negative,
+and a crosswind is positive when it comes from the right of the track. The
+wind correction angle has the same sign as the crosswind, so steering into the
+wind is steering by the correction angle.
+
+A crosswind stronger than the airspeed has no solution — the aircraft cannot
+hold the course at any heading — and `solve` reports it with
+`FlightError::CrosswindExceedsAirspeed` rather than returning a heading that
+does not exist.
+
+## Runways
+
+A runway is named for its magnetic direction in tens of degrees, and the wind
+across it is what a crosswind limit is written against:
+
+```moonbit nocheck
+///|
+let runway = @moonwind.Runway::parse("27").unwrap()
+
+///|
+let crosswind = runway.crosswind(wind)   // positive from the right
+
+///|
+let headwind = runway.headwind(wind)     // negative for a tailwind
+
+///|
+let other_end = runway.reciprocal().unwrap() // runway 09
+```
+
 ## Testing
 
 ```

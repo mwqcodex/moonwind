@@ -17,96 +17,64 @@
 ///   above 24,000 ft temperatures are always negative and the sign is
 ///   omitted, so the field is a bare two-digit magnitude.
 /// * the 3,000 ft column carries no temperature at all.
+///
+/// A real product is a few hundred station lines of nine columns each, so
+/// parsing walks the text once and reads every field through a `StringView`:
+/// nothing is copied out of the text until a value is kept, which is what
+/// keeps a parse of a 12 kB product in the hundreds of microseconds.
 
 ///|
-/// Split text into lines, dropping the final empty piece so that a trailing
-/// newline does not produce a phantom line.
-fn split_lines(text : String) -> Array[String] {
-  let out : Array[String] = []
+/// The end of the line that starts at `start`, and where the line after it
+/// starts.
+///
+/// A carriage return before the newline is not part of the line, so a product
+/// that comes back from a server with CRLF endings parses the same way.
+fn line_bounds(text : StringView, start : Int) -> (Int, Int) {
   let n = text.length()
-  let mut start = 0
-  for i = 0; i < n; i = i + 1 {
-    if text[i] == '\n' {
-      let mut end = i
-      if end > start && text[end - 1] == '\r' {
-        end -= 1
-      }
-      out.push(text[start:end].to_owned())
-      start = i + 1
-    }
+  let mut end = start
+  while end < n && text.at(end) != '\n' {
+    end += 1
   }
-  if start < n {
-    let mut end = n
-    if end > start && text[end - 1] == '\r' {
-      end -= 1
-    }
-    out.push(text[start:end].to_owned())
+  let mut content_end = end
+  if content_end > start && text.at(content_end - 1) == '\r' {
+    content_end -= 1
   }
-  out
+  let next = if end < n { end + 1 } else { n }
+  (content_end, next)
 }
 
 ///|
-/// Strip leading and trailing blanks.
-fn trim_ws(s : String) -> String {
-  let n = s.length()
-  let mut start = 0
-  let mut end = n
-  while start < end && (s[start] == ' ' || s[start] == '\t') {
-    start += 1
-  }
-  while end > start && (s[end - 1] == ' ' || s[end - 1] == '\t') {
-    end -= 1
-  }
-  s[start:end].to_owned()
-}
-
-///|
-/// The text before the first blank, or the whole text when it has none.
-fn first_token(s : String) -> String {
-  let n = s.length()
-  let mut i = 0
-  while i < n && s[i] != ' ' && s[i] != '\t' {
-    i += 1
-  }
-  s[0:i].to_owned()
-}
-
-///|
-/// The part of `s` after `prefix`, or `None` when it does not start with it.
-fn after_prefix(s : String, prefix : String) -> String? {
-  if s.has_prefix(prefix) {
-    Some(s[prefix.length():].to_owned())
+/// The part of `text` after `prefix`, or `None` when it does not start with
+/// it.
+fn after_prefix(text : StringView, prefix : StringView) -> StringView? {
+  if text.has_prefix(prefix) {
+    Some(text[prefix.length():])
   } else {
     None
   }
 }
 
 ///|
-/// The index of the first occurrence of `needle` in `s`.
-fn find_sub(s : String, needle : String) -> Int? {
-  let n = s.length()
-  let m = needle.length()
-  if m == 0 || m > n {
-    return None
+/// The text before the first blank, or the whole text when it has none.
+fn first_token(text : StringView) -> StringView {
+  let n = text.length()
+  let mut i = 0
+  while i < n && text.at(i) != ' ' && text.at(i) != '\t' {
+    i += 1
   }
-  for i = 0; i <= n - m; i = i + 1 {
-    if s[i:i + m].to_owned() == needle {
-      return Some(i)
-    }
-  }
-  None
+  text[0:i]
 }
 
 ///|
-/// Digits of `s`, or `None` when it is empty or holds anything else.
-fn parse_int(s : String) -> Int? {
-  let t = trim_ws(s)
+/// Digits of `text`, or `None` when it is empty or holds anything else.
+fn parse_int(text : StringView) -> Int? {
+  let t = text.trim()
   if t.length() == 0 {
     return None
   }
   let mut v = 0
   for i = 0; i < t.length(); i = i + 1 {
-    let c = t[i]
+    let c = t.at(i)
     if c < '0' || c > '9' {
       return None
     }
@@ -127,12 +95,12 @@ fn is_station_char(c : UInt16) -> Bool {
 ///|
 /// Whether a line looks like a station data line: three identifier
 /// characters followed by a blank.
-fn is_station_line(line : String) -> Bool {
+fn is_station_line(line : StringView) -> Bool {
   line.length() >= 4 &&
-  is_station_char(line[0]) &&
-  is_station_char(line[1]) &&
-  is_station_char(line[2]) &&
-  line[3] == ' '
+  is_station_char(line.at(0)) &&
+  is_station_char(line.at(1)) &&
+  is_station_char(line.at(2)) &&
+  line.at(3) == ' '
 }
 
 ///|
@@ -162,33 +130,30 @@ pub fn field_layout(altitudes : Array[Int]) -> Array[(Int, Int)] {
 
 ///|
 /// Two decimal digits starting at `at`.
-fn digits2(s : String, at : Int, whole : String) -> Int raise FdError {
-  if at < 0 || at + 2 > s.length() {
-    raise FdError::BadWindGroup(whole)
+fn digits2(text : StringView, at : Int) -> Int raise FdError {
+  if at < 0 || at + 2 > text.length() {
+    raise FdError::BadWindGroup(text.to_owned())
   }
-  let hi = s[at]
-  let lo = s[at + 1]
+  let hi = text.at(at)
+  let lo = text.at(at + 1)
   if hi < '0' || hi > '9' || lo < '0' || lo > '9' {
-    raise FdError::BadWindGroup(whole)
+    raise FdError::BadWindGroup(text.to_owned())
   }
   (hi.to_int() - '0'.to_int()) * 10 + (lo.to_int() - '0'.to_int())
 }
 
 ///|
-/// Decode a four-character wind group `ddss`.
-pub fn decode_wind(group : String) -> Wind raise FdError {
-  if group.length() != 4 {
-    raise FdError::BadWindGroup(group)
-  }
-  let dd = digits2(group, 0, group)
-  let ss = digits2(group, 2, group)
+/// Decode the four-character wind group at the start of `group`.
+fn decode_wind_group(group : StringView) -> Wind raise FdError {
+  let dd = digits2(group, 0)
+  let ss = digits2(group, 2)
   if dd == 99 && ss == 0 {
     // Light and variable: below 5 knots, direction not meaningful.
     { direction: None, speed: 0, }
   } else if dd > 36 {
     // Speeds of 100 knots or more carry the direction offset by 50.
     if dd < 50 || dd > 86 {
-      raise FdError::BadWindGroup(group)
+      raise FdError::BadWindGroup(group.to_owned())
     }
     { direction: Some((dd - 50) * 10), speed: ss + 100, }
   } else {
@@ -197,26 +162,37 @@ pub fn decode_wind(group : String) -> Wind raise FdError {
 }
 
 ///|
+/// Decode a four-character wind group `ddss`.
+pub fn decode_wind(group : String) -> Wind raise FdError {
+  let view : StringView = group
+  if view.length() != 4 {
+    raise FdError::BadWindGroup(group)
+  }
+  decode_wind_group(view)
+}
+
+///|
 /// Decode a temperature field, which is the text after the wind group.
 ///
 /// A signed field (`+18`, `-06`) is read as written. An unsigned field is a
 /// magnitude above 24,000 ft, where temperatures are always negative.
 fn decode_temperature(
-  text : String,
+  text : StringView,
   unsigned : Bool,
-  whole : String,
+  station : String,
+  altitude : Int,
 ) -> Int raise FdError {
   if text.length() == 0 {
-    raise FdError::BadTemperature(whole)
+    raise FdError::BadTemperature("\{station} \{altitude}")
   }
   if !unsigned {
-    let sign = text[0]
+    let sign = text.at(0)
     if sign != '+' && sign != '-' {
-      raise FdError::BadTemperature(whole)
+      raise FdError::BadTemperature("\{station} \{altitude} \{text}")
     }
-    let magnitude = match parse_int(text[1:].to_owned()) {
+    let magnitude = match parse_int(text[1:]) {
       Some(v) => v
-      None => raise FdError::BadTemperature(whole)
+      None => raise FdError::BadTemperature("\{station} \{altitude} \{text}")
     }
     if sign == '-' {
       -magnitude
@@ -226,7 +202,7 @@ fn decode_temperature(
   } else {
     match parse_int(text) {
       Some(v) => -v
-      None => raise FdError::BadTemperature(whole)
+      None => raise FdError::BadTemperature("\{station} \{altitude} \{text}")
     }
   }
 }
@@ -234,7 +210,7 @@ fn decode_temperature(
 ///|
 /// Parse one station line.
 fn parse_station_line(
-  line : String,
+  line : StringView,
   altitudes : Array[Int],
   layout : Array[(Int, Int)],
 ) -> StationWinds raise FdError {
@@ -249,24 +225,20 @@ fn parse_station_line(
     if end > line.length() {
       end = line.length()
     }
-    let field = trim_ws(line[start:end].to_owned())
+    let field = line[start:end].trim()
     if field.length() == 0 {
       continue
     }
     if field.length() < 4 {
-      raise FdError::BadWindGroup(line)
+      raise FdError::BadWindGroup(line.to_owned())
     }
-    let wind = decode_wind(field[0:4].to_owned())
-    let rest = trim_ws(field[4:].to_owned())
+    let wind = decode_wind_group(field)
+    let rest = field[4:].trim()
     let temperature = if rest.length() == 0 {
       None
     } else {
       Some(
-        decode_temperature(
-          rest,
-          altitudes[i] > 24000,
-          "\{station} \{altitudes[i]} \{field}",
-        ),
+        decode_temperature(rest, altitudes[i] > 24000, station, altitudes[i]),
       )
     }
     levels.push({ altitude: altitudes[i], wind, temperature, })
@@ -276,24 +248,23 @@ fn parse_station_line(
 
 ///|
 /// The levels listed in an `FT` header line.
-fn parse_level_header(line : String) -> Array[Int] raise FdError {
+fn parse_level_header(line : StringView) -> Array[Int] raise FdError {
   let rest = match after_prefix(line, "FT") {
-    Some(r) => r
-    None => raise FdError::BadLevelHeader(line)
+    Some(rest) => rest
+    None => raise FdError::BadLevelHeader(line.to_owned())
   }
   let altitudes : Array[Int] = []
   for token in rest.split(" ") {
-    let t = trim_ws(token.to_owned())
-    if t.length() == 0 {
-      continue
-    }
-    match parse_int(t) {
+    match parse_int(token) {
       Some(v) => altitudes.push(v)
-      None => raise FdError::BadLevelHeader(line)
+      None =>
+        if token.trim().length() > 0 {
+          raise FdError::BadLevelHeader(line.to_owned())
+        }
     }
   }
   if altitudes.length() == 0 {
-    raise FdError::BadLevelHeader(line)
+    raise FdError::BadLevelHeader(line.to_owned())
   }
   altitudes
 }
@@ -304,23 +275,30 @@ fn parse_level_header(line : String) -> Array[Int] raise FdError {
 /// Header lines, the `FT` line and any trailing lines are kept verbatim, so
 /// `format_bulletin` reproduces the input byte for byte.
 pub fn parse_bulletin(text : String) -> Bulletin raise FdError {
-  let lines = split_lines(text)
+  let view : StringView = text
+  let n = view.length()
   let header : Array[String] = []
-  let trailing : Array[String] = []
-  let mut indexPath : Int? = None
-  for i = 0; i < lines.length(); i = i + 1 {
-    if lines[i].has_prefix("FT ") || lines[i] == "FT" {
-      indexPath = Some(i)
+  let mut path_start = -1
+  let mut path_end = 0
+  let mut rest = n
+  let mut start = 0
+  while start < n {
+    let (end, next) = line_bounds(view, start)
+    let line = view[start:end]
+    if line.has_prefix("FT ") || line == "FT" {
+      path_start = start
+      path_end = end
+      rest = next
       break
     }
-    header.push(lines[i])
+    header.push(line.to_owned())
+    start = next
   }
-  let path_index = match indexPath {
-    Some(i) => i
-    None => raise FdError::MissingLevelHeader
+  if path_start < 0 {
+    raise FdError::MissingLevelHeader
   }
-  let level_header = lines[path_index]
-  let altitudes = parse_level_header(level_header)
+  let level_header = view[path_start:path_end].to_owned()
+  let altitudes = parse_level_header(view[path_start:path_end])
   let layout = field_layout(altitudes)
 
   // Header metadata.
@@ -331,61 +309,70 @@ pub fn parse_bulletin(text : String) -> Bulletin raise FdError {
   let mut wmo_header : String? = None
   let mut designator : String? = None
   for line in header {
+    let line : StringView = line
     if line.length() == 0 {
       continue
     }
     match after_prefix(line, "DATA BASED ON ") {
-      Some(rest) => based_on = Some(first_token(rest))
+      Some(found) => based_on = Some(first_token(found).to_owned())
       None => ()
     }
     match after_prefix(line, "VALID ") {
-      Some(rest) => {
-        valid = Some(first_token(rest))
-        match find_sub(rest, "FOR USE ") {
+      Some(found) => {
+        valid = Some(first_token(found).to_owned())
+        match found.find("FOR USE ") {
           // The window is followed by a full stop: `FOR USE 1400-2100Z.`
           Some(at) =>
             use_window = Some(
-              trim_end_char(first_token(rest[at + 8:].to_owned()), '.'),
+              trim_end_char(first_token(found[at + 8:]).to_owned(), '.'),
             )
           None => ()
         }
-        match find_sub(rest, "TEMPS NEG ABV ") {
+        match found.find("TEMPS NEG ABV ") {
           Some(at) =>
-            temps_negative_above = parse_int(
-              first_token(rest[at + 14:].to_owned()),
-            )
+            temps_negative_above = parse_int(first_token(found[at + 14:]))
           None => ()
         }
       }
       None => ()
     }
     if wmo_header is None && line.length() >= 6 && line.has_prefix("FB") {
-      wmo_header = Some(line)
+      wmo_header = Some(line.to_owned())
     }
     if designator is None && line.length() == 6 && line.has_prefix("FD") {
-      designator = Some(line)
+      designator = Some(line.to_owned())
     }
   }
 
   // Station data, then anything that follows it.
   let stations : Array[StationWinds] = []
-  let mut i = path_index + 1
-  while i < lines.length() {
-    if is_station_line(lines[i]) {
-      stations.push(parse_station_line(lines[i], altitudes, layout))
-      i += 1
-    } else if trim_ws(lines[i]).length() == 0 &&
-      i + 1 < lines.length() &&
-      is_station_line(lines[i + 1]) {
+  let index : @hashmap.HashMap[String, StationWinds] = @hashmap.HashMap([])
+  let mut i = rest
+  while i < n {
+    let (end, next) = line_bounds(view, i)
+    let line = view[i:end]
+    if is_station_line(line) {
+      let station = parse_station_line(line, altitudes, layout)
+      index.set(station.station, station)
+      stations.push(station)
+      i = next
+    } else if line.trim().length() == 0 && next < n {
       // A blank line inside the data section is not data.
-      i += 1
+      let (peek_end, _) = line_bounds(view, next)
+      if is_station_line(view[next:peek_end]) {
+        i = next
+      } else {
+        break
+      }
     } else {
       break
     }
   }
-  while i < lines.length() {
-    trailing.push(lines[i])
-    i += 1
+  let trailing : Array[String] = []
+  while i < n {
+    let (end, next) = line_bounds(view, i)
+    trailing.push(view[i:end].to_owned())
+    i = next
   }
   {
     header,
@@ -398,26 +385,24 @@ pub fn parse_bulletin(text : String) -> Bulletin raise FdError {
     wmo_header,
     designator,
     stations,
+    index,
     trailing,
   }
 }
 
 ///|
-/// Two decimal digits, zero padded.
-fn two_digits(v : Int) -> String {
-  let tens = v / 10 % 10
-  let ones = v % 10
-  String::from_array([
-    ('0'.to_int() + tens).unsafe_to_char(),
-    ('0'.to_int() + ones).unsafe_to_char(),
-  ])
+/// Two decimal digits, zero padded, written straight into `out`.
+fn write_two_digits(out : StringBuilder, v : Int) -> Unit {
+  out.write_char(('0'.to_int() + v / 10 % 10).unsafe_to_char())
+  out.write_char(('0'.to_int() + v % 10).unsafe_to_char())
 }
 
 ///|
-/// Encode a wind as its four-character group.
-pub fn encode_wind(wind : Wind) -> String raise FdError {
+/// Write a wind as its four-character group.
+fn write_wind(out : StringBuilder, wind : Wind) -> Unit raise FdError {
   if wind.is_light_and_variable() {
-    return "9900"
+    out.write_string("9900")
+    return
   }
   let direction = match wind.direction {
     Some(d) => d
@@ -431,9 +416,43 @@ pub fn encode_wind(wind : Wind) -> String raise FdError {
   }
   let tens = direction / 10
   if wind.speed >= 100 {
-    return two_digits(tens + 50) + two_digits(wind.speed - 100)
+    write_two_digits(out, tens + 50)
+    write_two_digits(out, wind.speed - 100)
+  } else {
+    write_two_digits(out, tens)
+    write_two_digits(out, wind.speed)
   }
-  two_digits(tens) + two_digits(wind.speed)
+}
+
+///|
+/// Encode a wind as its four-character group.
+pub fn encode_wind(wind : Wind) -> String raise FdError {
+  let out = StringBuilder(size_hint=4)
+  write_wind(out, wind)
+  out.to_string()
+}
+
+///|
+/// Write a temperature field for a level: unsigned above 24,000 ft, where
+/// temperatures are always negative, and signed below.
+fn write_temperature(
+  out : StringBuilder,
+  temperature : Int,
+  altitude : Int,
+) -> Unit raise FdError {
+  let magnitude = if temperature < 0 { -temperature } else { temperature }
+  if magnitude > 99 {
+    raise FdError::BadTemperature("temperature must be in -99..99")
+  }
+  if altitude > 24000 {
+    if temperature > 0 {
+      raise FdError::BadTemperature("above 24,000 ft the sign is not carried")
+    }
+    write_two_digits(out, magnitude)
+  } else {
+    out.write_char(if temperature < 0 { '-' } else { '+' })
+    write_two_digits(out, magnitude)
+  }
 }
 
 ///|
@@ -443,30 +462,32 @@ pub fn encode_temperature(
   temperature : Int,
   altitude : Int,
 ) -> String raise FdError {
-  let magnitude = if temperature < 0 { -temperature } else { temperature }
-  if magnitude > 99 {
-    raise FdError::BadTemperature("temperature must be in -99..99")
-  }
-  if altitude > 24000 {
-    if temperature > 0 {
-      raise FdError::BadTemperature("above 24,000 ft the sign is not carried")
-    }
-    two_digits(magnitude)
-  } else if temperature < 0 {
-    "-" + two_digits(magnitude)
-  } else {
-    "+" + two_digits(magnitude)
+  let out = StringBuilder(size_hint=3)
+  write_temperature(out, temperature, altitude)
+  out.to_string()
+}
+
+///|
+/// The width of a level's field: the four characters of the wind group, plus
+/// three for a signed temperature, or two above 24,000 ft, where the sign is
+/// not carried.
+fn field_length(level : Level) -> Int {
+  match level.temperature {
+    None => 4
+    Some(_) => if level.altitude > 24000 { 6 } else { 7 }
   }
 }
 
 ///|
 /// Encode one level as its column field, without padding.
 pub fn encode_level(level : Level) -> String raise FdError {
-  let wind = encode_wind(level.wind)
+  let out = StringBuilder(size_hint=field_length(level))
+  write_wind(out, level.wind)
   match level.temperature {
-    None => wind
-    Some(t) => wind + encode_temperature(t, level.altitude)
+    None => ()
+    Some(t) => write_temperature(out, t, level.altitude)
   }
+  out.to_string()
 }
 
 ///|
@@ -478,41 +499,46 @@ pub fn format_station(
   let layout = field_layout(altitudes)
   let out = StringBuilder(size_hint=80)
   out.write_string(station.station)
-  let mut col = station.station.length()
-  while col < 3 {
+  let mut column = station.station.length()
+  while column < 3 {
     out.write_char(' ')
-    col += 1
+    column += 1
   }
+  // The levels and the columns are both ascending, so they are walked in one
+  // pass, and a blank column is skipped without a search.
+  let mut index = 0
   for i = 0; i < altitudes.length(); i = i + 1 {
     let (start, width) = layout[i]
-    match station.level_at(altitudes[i]) {
-      None => ()
-      Some(level) => {
-        while col < start {
-          out.write_char(' ')
-          col += 1
-        }
-        let field = encode_level(level)
-        if field.length() > width {
-          raise FdError::BadStationLine(
-            "field \{field} is wider than its \{width}-character column",
-          )
-        }
-        out.write_string(field)
-        col += field.length()
-        let mut padded = field.length()
-        while padded < width {
-          out.write_char(' ')
-          col += 1
-          padded += 1
-        }
-      }
+    while index < station.levels.length() &&
+          station.levels[index].altitude < altitudes[i] {
+      index += 1
     }
+    if index >= station.levels.length() {
+      break
+    }
+    let level = station.levels[index]
+    if level.altitude != altitudes[i] {
+      continue
+    }
+    if field_length(level) > width {
+      raise FdError::BadStationLine(
+        "field \{encode_level(level)} is wider than its \{width}-character column",
+      )
+    }
+    while column < start {
+      out.write_char(' ')
+      column += 1
+    }
+    write_wind(out, level.wind)
+    match level.temperature {
+      None => ()
+      Some(t) => write_temperature(out, t, level.altitude)
+    }
+    column += field_length(level)
   }
-  // Columns after the last reported level are not padded, matching the wire
-  // format, which ends the line at the last group.
-  let text = out.to_string()
-  trim_end(text)
+  // The line ends at the last reported level, matching the wire format, which
+  // stops at the last group written.
+  out.to_string()
 }
 
 ///|
@@ -521,16 +547,6 @@ fn trim_end_char(s : String, c : Char) -> String {
   let target = c.to_int()
   let mut end = s.length()
   while end > 0 && s[end - 1].to_int() == target {
-    end -= 1
-  }
-  s[0:end].to_owned()
-}
-
-///|
-/// Strip trailing blanks.
-fn trim_end(s : String) -> String {
-  let mut end = s.length()
-  while end > 0 && (s[end - 1] == ' ' || s[end - 1] == '\t') {
     end -= 1
   }
   s[0:end].to_owned()

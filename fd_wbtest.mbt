@@ -53,9 +53,9 @@ test "wind groups round trip" {
 /// Above 24,000 ft the sign is dropped from the temperature, so a bare
 /// two-digit field is a negative temperature.
 test "temperature fields round trip" {
-  assert_eq(decode_temperature("+18", false, ""), 18)
-  assert_eq(decode_temperature("-06", false, ""), -6)
-  assert_eq(decode_temperature("33", true, ""), -33)
+  assert_eq(decode_temperature("+18", false, "ABR", 12000), 18)
+  assert_eq(decode_temperature("-06", false, "ABR", 18000), -6)
+  assert_eq(decode_temperature("33", true, "ABR", 30000), -33)
   assert_eq(encode_temperature(18, 12000), "+18")
   assert_eq(encode_temperature(-6, 18000), "-06")
   assert_eq(encode_temperature(-33, 30000), "33")

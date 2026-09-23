@@ -75,6 +75,9 @@ pub struct Bulletin {
   /// parsed from `TEMPS NEG ABV n`; 24,000 ft in current products.
   temps_negative_above : Int?
   stations : Array[StationWinds]
+  /// `stations` by identifier, so that finding one station does not look at
+  /// the whole product.
+  index : @hashmap.HashMap[String, StationWinds]
   /// Lines after the last station line, verbatim. Present in some products,
   /// which end with a list of stations that were not received.
   trailing : Array[String]
@@ -194,10 +197,5 @@ pub fn Bulletin::temps_negative_above(self : Bulletin) -> Int? {
 ///|
 /// The forecast for one station, by its three-character identifier.
 pub fn Bulletin::station(self : Bulletin, id : String) -> StationWinds? {
-  for station in self.stations {
-    if station.station == id {
-      return Some(station)
-    }
-  }
-  None
+  self.index.get(id)
 }

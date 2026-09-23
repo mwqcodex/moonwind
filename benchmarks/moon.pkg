@@ -1,0 +1,12 @@
+import {
+  "MWQCODEX/moonwind",
+  "moonbitlang/core/bench",
+}
+
+// The benchmarks are all this package holds, so nothing it imports or
+// declares is used outside a test target: an unused import and an unused
+// constant are what this package is, not something left behind.
+
+options(
+  warn_list: "-2-29",
+)

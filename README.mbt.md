@@ -264,3 +264,15 @@ They cover the decode rules, the golden values of specific stations, a
 byte-for-byte round trip of every product, the interpolation, conversion,
 standard-atmosphere and great-circle values quoted above, and the command
 line demo's reading of its arguments.
+
+The package also carries benchmarks, run against the same real product:
+
+```
+moon bench --release benchmarks
+```
+
+one benchmark per thing a flight plan is made of — parsing a product,
+writing one back, the wind at a flight level, a wind triangle, a
+great-circle hop and a position along it, cutting a route into legs, and
+planning a whole route — so a change to the parsing or the arithmetic shows
+up in the numbers rather than being argued about.

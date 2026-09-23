@@ -14,13 +14,21 @@
 /// which is the side a wind correction angle steers into.
 
 ///|
-/// A wind triangle that cannot be flown.
+/// A flight that cannot be planned: a wind triangle with no solution, or a
+/// leg with no forecast or no ground speed to time it by.
 pub suberror FlightError {
   /// The airspeed must be positive.
   BadAirspeed(Double)
   /// The wind blows sideways faster than the aeroplane flies, so no heading
   /// can hold the course. The payloads are the crosswind and the airspeed.
   CrosswindExceedsAirspeed(Double, Double)
+  /// No level is forecast at this altitude, which is the payload: the station
+  /// reports its levels only up to the top of the product.
+  NoForecast(Int)
+  /// The wind along the leg beats the aeroplane, leaving a ground speed of
+  /// zero or less — a headwind stronger than the airspeed — so the leg takes
+  /// no time that means anything. The payload is the ground speed.
+  NoGroundSpeed(Double)
 }
 
 ///|

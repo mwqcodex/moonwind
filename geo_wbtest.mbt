@@ -170,3 +170,27 @@ test "interpolation walks the path" {
   assert_true(geo_close(stayed.latitude(), 40.0, 1.0e-12))
   assert_true(geo_close(stayed.longitude(), -74.0, 1.0e-12))
 }
+
+///|
+/// A midpoint is the balance of its two positions, so it is exact where the
+/// walk is not: at the two ends of a quarter of the equator, and even at the
+/// pole. Two exactly opposite positions have no single great circle between
+/// them, and answer where the walk began rather than somewhere made up.
+test "a midpoint balances its two positions" {
+  // Half way along the equator, by symmetry: the sum of two unit vectors a
+  // quarter turn apart is exact.
+  let mid = coord(0.0, 0.0).midpoint(coord(0.0, 90.0))
+  assert_true(geo_close(mid.latitude(), 0.0, 1.0e-12))
+  assert_true(geo_close(mid.longitude(), 45.0, 1.0e-12))
+
+  // The pole has no longitude of its own, and the midpoint of two positions
+  // that oppose each other across it is still exact.
+  let pole = coord(90.0, 0.0)
+  let opposite = pole.midpoint(coord(-90.0, 0.0))
+  assert_true(geo_close(opposite.latitude(), 90.0, 1.0e-12))
+
+  // Two positions one can stand in at once.
+  let stayed = coord(40.0, -74.0).midpoint(coord(40.0, -74.0))
+  assert_true(geo_close(stayed.latitude(), 40.0, 1.0e-12))
+  assert_true(geo_close(stayed.longitude(), -74.0, 1.0e-12))
+}

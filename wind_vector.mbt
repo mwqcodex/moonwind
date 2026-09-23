@@ -82,12 +82,13 @@ let calm_threshold : Double = 0.5
 /// A vector below half a knot rounds to zero speed, and is reported the way
 /// the bulletins report a negligible wind: light and variable.
 pub fn WindVector::to_wind(self : WindVector) -> Wind {
-  if self.speed() < calm_threshold {
+  let speed = self.speed()
+  if speed < calm_threshold {
     { direction: None, speed: 0, }
   } else {
     {
       direction: Some(@math.round(self.direction()).to_int() % 360),
-      speed: @math.round(self.speed()).to_int(),
+      speed: @math.round(speed).to_int(),
     }
   }
 }

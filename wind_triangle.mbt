@@ -97,6 +97,30 @@ pub fn WindTriangle::crosswind(self : WindTriangle) -> Double {
 }
 
 ///|
+/// The wind along the direction whose sine and cosine of the course are
+/// `sin_course` and `cos_course`, in knots: positive when it comes from ahead,
+/// so a tailwind is negative.
+fn headwind_of(
+  wind : WindVector,
+  sin_course : Double,
+  cos_course : Double,
+) -> Double {
+  -(wind.u * sin_course + wind.v * cos_course)
+}
+
+///|
+/// The wind across that direction, in knots: positive when it comes from the
+/// right, the side that makes an aircraft steer a positive wind correction
+/// angle.
+fn crosswind_of(
+  wind : WindVector,
+  sin_course : Double,
+  cos_course : Double,
+) -> Double {
+  wind.v * sin_course - wind.u * cos_course
+}
+
+///|
 /// The wind along `direction`, in degrees true, in knots.
 ///
 /// Positive when the wind comes from ahead, so a tailwind is negative. A
@@ -106,7 +130,7 @@ pub fn WindVector::headwind_component(
   direction : Double,
 ) -> Double {
   let radians = direction * @math.PI / 180.0
-  -(self.u * @math.sin(radians) + self.v * @math.cos(radians))
+  headwind_of(self, @math.sin(radians), @math.cos(radians))
 }
 
 ///|
@@ -119,7 +143,7 @@ pub fn WindVector::crosswind_component(
   direction : Double,
 ) -> Double {
   let radians = direction * @math.PI / 180.0
-  self.v * @math.sin(radians) - self.u * @math.cos(radians)
+  crosswind_of(self, @math.sin(radians), @math.cos(radians))
 }
 
 ///|
@@ -150,17 +174,21 @@ pub fn WindTriangle::solve(
   if airspeed <= 0.0 {
     raise FlightError::BadAirspeed(airspeed)
   }
-  let crosswind = wind.crosswind_component(course)
-  let headwind = wind.headwind_component(course)
+  // One turn of the course is all the triangle needs of it: both components
+  // and the correction angle are read off the same sine and cosine.
+  let radians = course * @math.PI / 180.0
+  let sin_course = @math.sin(radians)
+  let cos_course = @math.cos(radians)
+  let crosswind = crosswind_of(wind, sin_course, cos_course)
+  let headwind = headwind_of(wind, sin_course, cos_course)
   let along = airspeed * airspeed - crosswind * crosswind
   if along < 0.0 {
     raise FlightError::CrosswindExceedsAirspeed(crosswind, airspeed)
   }
-  let wind_correction_angle = @math.atan2(crosswind, along.sqrt()) *
-    180.0 /
-    @math.PI
+  let across = along.sqrt()
+  let wind_correction_angle = @math.atan2(crosswind, across) * 180.0 / @math.PI
   let heading = normalize_degrees(course + wind_correction_angle)
-  let ground_speed = along.sqrt() - headwind
+  let ground_speed = across - headwind
   {
     course,
     airspeed,

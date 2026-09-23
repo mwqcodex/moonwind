@@ -94,10 +94,13 @@ pub fn Route::segments(self : Route) -> Array[RouteSegment] {
 
 ///|
 /// The length of the route along its waypoints, in nautical miles.
+///
+/// Only the hops are measured, so a route's length costs nothing it does not
+/// use: the courses along the way are left to `segments`.
 pub fn Route::distance(self : Route) -> Double {
   let mut total = 0.0
-  for segment in self.segments() {
-    total += segment.distance
+  for i = 0; i + 1 < self.points.length(); i = i + 1 {
+    total += self.points[i].distance_to(self.points[i + 1])
   }
   total
 }
@@ -106,6 +109,10 @@ pub fn Route::distance(self : Route) -> Double {
 /// The same route flown in shorter hops: every hop divided into `count` equal
 /// parts, so that the course of each part stays close to the course at its
 /// start. A `count` below one leaves the route as it is.
+///
+/// The hop is walked from its two ends, which are read once for the whole
+/// hop: cutting a route into many legs costs the same trigonometry whether a
+/// hop is cut in two or in twenty.
 pub fn Route::subdivided(self : Route, count : Int) -> Route {
   let points : Array[Coordinate] = []
   if count < 1 {
@@ -113,14 +120,24 @@ pub fn Route::subdivided(self : Route, count : Int) -> Route {
       points.push(point)
     }
   } else {
-    for segment in self.segments() {
-      points.push(segment.from)
-      for i = 1; i < count; i = i + 1 {
+    for i = 0; i + 1 < self.points.length(); i = i + 1 {
+      let from = self.points[i]
+      let to = self.points[i + 1]
+      points.push(from)
+      let start = unit_vector(from)
+      let end = unit_vector(to)
+      let angle = angle_between(start, end)
+      let walkable = angle > 1.0e-12 && angle < @math.PI - 1.0e-12
+      for part = 1; part < count; part = part + 1 {
+        let fraction = part.to_double() / count.to_double()
         points.push(
-          segment.from.interpolate(
-            segment.to,
-            i.to_double() / count.to_double(),
-          ),
+          if walkable {
+            position_along(start, end, angle, fraction)
+          } else {
+            // The hop is too short to have parts, or runs between opposite
+            // positions, where there is no path to walk: it stays where it is.
+            from
+          },
         )
       }
     }

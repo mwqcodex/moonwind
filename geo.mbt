@@ -158,26 +158,20 @@ fn angle_between(one : UnitVector, other : UnitVector) -> Double {
 }
 
 ///|
-/// The position `fraction` of the way along the great circle to `other`:
-/// 0 is here, 1 is there, and 0.5 is half way by distance.
+/// The position `fraction` of the way along the great-circle path between two
+/// unit vectors `angle` apart.
 ///
-/// The path is interpolated on the sphere, by mixing the two positions as
-/// vectors and putting the result back on the surface, so the points land on
-/// the great circle itself and equal fractions cover equal distances. Two
-/// positions that coincide have no path between them and answer themselves;
-/// two exactly opposite positions have no single great circle at all, and
-/// answer themselves as well.
-pub fn Coordinate::interpolate(
-  self : Coordinate,
-  other : Coordinate,
+/// The path is walked on the sphere by mixing the two positions and putting
+/// the mix back on the surface, so the points land on the great circle itself
+/// and equal fractions cover equal distances. Two positions that coincide
+/// have no path between them and answer the one they are; two exactly
+/// opposite positions have no single great circle at all, and answer it too.
+fn position_along(
+  from : UnitVector,
+  to : UnitVector,
+  angle : Double,
   fraction : Double,
 ) -> Coordinate {
-  let from = unit_vector(self)
-  let to = unit_vector(other)
-  let angle = angle_between(from, to)
-  if angle < 1.0e-12 || angle > @math.PI - 1.0e-12 {
-    return self
-  }
   let sine = @math.sin(angle)
   let weight_from = @math.sin((1.0 - fraction) * angle) / sine
   let weight_to = @math.sin(fraction * angle) / sine
@@ -189,10 +183,44 @@ pub fn Coordinate::interpolate(
 }
 
 ///|
+/// The position `fraction` of the way along the great circle to `other`:
+/// 0 is here, 1 is there, and 0.5 is half way by distance.
+pub fn Coordinate::interpolate(
+  self : Coordinate,
+  other : Coordinate,
+  fraction : Double,
+) -> Coordinate {
+  let from = unit_vector(self)
+  let to = unit_vector(other)
+  let angle = angle_between(from, to)
+  if angle < 1.0e-12 || angle > @math.PI - 1.0e-12 {
+    return self
+  }
+  position_along(from, to, angle, fraction)
+}
+
+///|
 /// Half way along the great circle to `other`, by distance.
+///
+/// Half way is where the two positions balance, which is a sum rather than a
+/// walk: the sum of two unit vectors points at the middle of the path between
+/// them, and only needs putting back on the surface. It is also the better
+/// behaved of the two at short range, where walking a path by its sine leaves
+/// the middle undetermined.
 pub fn Coordinate::midpoint(
   self : Coordinate,
   other : Coordinate,
 ) -> Coordinate {
-  self.interpolate(other, 0.5)
+  let from = unit_vector(self)
+  let to = unit_vector(other)
+  let x = from.x + to.x
+  let y = from.y + to.y
+  let z = from.z + to.z
+  let length = (x * x + y * y + z * z).sqrt()
+  if length < 1.0e-12 {
+    // The two positions coincide, or are exactly opposite: the first has no
+    // middle, the second has no single path with one.
+    return self
+  }
+  position_of({ x: x / length, y: y / length, z: z / length, })
 }

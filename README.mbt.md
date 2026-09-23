@@ -1,8 +1,9 @@
 # moonwind
 
 Upper-air weather for flight planning, in pure MoonBit: winds and
-temperatures aloft (FD) bulletins, and the wind-triangle calculations that
-turn them into ground speed, wind correction angle and crosswind components.
+temperatures aloft (FD) bulletins, the wind-triangle calculations that turn
+them into headings, ground speeds and crosswind components, and the
+great-circle routes those are flown along.
 
 ```moonbit nocheck
 ///|
@@ -107,7 +108,7 @@ ground speed that results, and the components a pilot reads a wind in:
 let triangle = @moonwind.WindTriangle::solve(90.0, 120.0, wind)
 
 ///|
-let heading = triangle.heading()          // 097.99°, course plus the correction
+let heading = triangle.heading() // 097.99°, course plus the correction
 
 ///|
 let ground_speed = triangle.ground_speed() // 111.01 kt
@@ -133,14 +134,77 @@ across it is what a crosswind limit is written against:
 let runway = @moonwind.Runway::parse("27").unwrap()
 
 ///|
-let crosswind = runway.crosswind(wind)   // positive from the right
+let crosswind = runway.crosswind(wind) // positive from the right
 
 ///|
-let headwind = runway.headwind(wind)     // negative for a tailwind
+let headwind = runway.headwind(wind) // negative for a tailwind
 
 ///|
 let other_end = runway.reciprocal().unwrap() // runway 09
 ```
+
+## Routes
+
+A route is a list of waypoints, and the path between two of them is a great
+circle. The course of a great circle drifts as it is flown — the one from New
+York to London leaves on 051 and arrives on 108 — so a long hop is cut into
+shorter legs, each with a course of its own:
+
+```moonbit nocheck
+///|
+let route = @moonwind.Route::new([
+  @moonwind.Coordinate::new(45.0, -98.0),
+  @moonwind.Coordinate::new(44.0, -96.0),
+  @moonwind.Coordinate::new(43.0, -94.0),
+])
+
+///|
+let distance = route.distance() // 210.38 nm along the waypoints
+
+///|
+let segments = route.segments() // a distance and a course for every hop
+
+///|
+let shorter = route.subdivided(8) // every hop flown as eight shorter ones
+
+///|
+let middle = route.points()[0].midpoint(route.points()[1])
+```
+
+`Coordinate` does the geometry: the great-circle `distance_to` another
+position, the `initial_course_to` it, and `interpolate` and `midpoint` for the
+positions along the way. Distances are nautical miles on a sphere of the
+Earth's mean radius, and a path across the date line is taken the short way,
+so the course from 170 east to 170 west is 270 rather than 90.
+
+A route is planned against a forecast at one altitude and airspeed. Each leg
+is flown at the wind over its own middle, where a leg is most of the way
+through it:
+
+```moonbit nocheck
+///|
+let plan = route.plan(station, 12000, 120.0)
+
+///|
+let legs = plan.legs() // each with its wind, heading, ground speed and time
+
+///|
+let hours = plan.total_time_hours()
+
+///|
+let distance = plan.total_distance()
+```
+
+`Route::plan` reads one station's forecast at the level it reports for that
+altitude. `Route::plan_with` takes the wind from a function of the position
+and the altitude instead, so a forecast that varies over a route — the station
+nearest each leg, or a grid of forecast winds — is used where the leg is.
+
+A leg that has no forecast at that altitude is reported with
+`FlightError::NoForecast`, and a leg the wind beats — a headwind stronger than
+the airspeed, so the ground speed comes out at or below zero — with
+`FlightError::NoGroundSpeed`, rather than being given a time that means
+nothing.
 
 ## Testing
 
@@ -157,5 +221,5 @@ python scripts/gen_fixtures.py > fd_fixtures_wbtest.mbt
 ```
 
 They cover the decode rules, the golden values of specific stations, a
-byte-for-byte round trip of every product, and the interpolation, conversion
-and standard-atmosphere values quoted above.
+byte-for-byte round trip of every product, and the interpolation, conversion,
+standard-atmosphere and great-circle values quoted above.

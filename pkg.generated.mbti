@@ -54,6 +54,8 @@ pub suberror FdError {
 pub suberror FlightError {
   BadAirspeed(Double)
   CrosswindExceedsAirspeed(Double, Double)
+  NoForecast(Int)
+  NoGroundSpeed(Double)
 }
 
 // Types and methods
@@ -73,6 +75,18 @@ pub struct Bulletin {
 pub fn Bulletin::station(Self, String) -> StationWinds?
 pub fn Bulletin::stations(Self) -> Array[StationWinds]
 
+pub struct Coordinate {
+  latitude : Double
+  longitude : Double
+}
+pub fn Coordinate::distance_to(Self, Self) -> Double
+pub fn Coordinate::initial_course_to(Self, Self) -> Double
+pub fn Coordinate::interpolate(Self, Self, Double) -> Self
+pub fn Coordinate::latitude(Self) -> Double
+pub fn Coordinate::longitude(Self) -> Double
+pub fn Coordinate::midpoint(Self, Self) -> Self
+pub fn Coordinate::new(Double, Double) -> Self
+
 pub struct Level {
   altitude : Int
   wind : Wind
@@ -81,6 +95,59 @@ pub struct Level {
 pub fn Level::altitude(Self) -> Int
 pub fn Level::temperature(Self) -> Int?
 pub fn Level::wind(Self) -> Wind
+
+pub struct Route {
+  points : Array[Coordinate]
+}
+pub fn Route::distance(Self) -> Double
+pub fn Route::new(Array[Coordinate]) -> Self
+pub fn Route::plan(Self, StationWinds, Int, Double) -> RoutePlan raise FlightError
+pub fn Route::plan_with(Self, (Coordinate, Int) -> WindVector?, Int, Double) -> RoutePlan raise FlightError
+pub fn Route::points(Self) -> Array[Coordinate]
+pub fn Route::segments(Self) -> Array[RouteSegment]
+pub fn Route::subdivided(Self, Int) -> Self
+
+pub struct RouteLeg {
+  segment : RouteSegment
+  wind : WindVector
+  triangle : WindTriangle
+}
+pub fn RouteLeg::crosswind(Self) -> Double
+pub fn RouteLeg::distance(Self) -> Double
+pub fn RouteLeg::ground_speed(Self) -> Double
+pub fn RouteLeg::heading(Self) -> Double
+pub fn RouteLeg::headwind(Self) -> Double
+pub fn RouteLeg::segment(Self) -> RouteSegment
+pub fn RouteLeg::time_hours(Self) -> Double
+pub fn RouteLeg::triangle(Self) -> WindTriangle
+pub fn RouteLeg::true_course(Self) -> Double
+pub fn RouteLeg::wind(Self) -> WindVector
+
+pub struct RoutePlan {
+  source : String?
+  altitude : Int
+  airspeed : Double
+  legs : Array[RouteLeg]
+}
+pub fn RoutePlan::airspeed(Self) -> Double
+pub fn RoutePlan::altitude(Self) -> Int
+pub fn RoutePlan::legs(Self) -> Array[RouteLeg]
+pub fn RoutePlan::source(Self) -> String?
+pub fn RoutePlan::total_distance(Self) -> Double
+pub fn RoutePlan::total_time_hours(Self) -> Double
+
+pub struct RouteSegment {
+  from : Coordinate
+  to : Coordinate
+  distance : Double
+  true_course : Double
+}
+pub fn RouteSegment::distance(Self) -> Double
+pub fn RouteSegment::from(Self) -> Coordinate
+pub fn RouteSegment::midpoint(Self) -> Coordinate
+pub fn RouteSegment::new(Coordinate, Coordinate) -> Self
+pub fn RouteSegment::to(Self) -> Coordinate
+pub fn RouteSegment::true_course(Self) -> Double
 
 pub struct Runway {
   designator : String

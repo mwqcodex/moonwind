@@ -81,6 +81,14 @@ pub struct Bulletin {
 }
 
 ///|
+/// A wind from the direction it blows from and its speed, which is how one is
+/// reported: `Wind::new(Some(150), 14)` is 150 degrees at 14 kt, and
+/// `Wind::new(None, 0)` is light and variable.
+pub fn Wind::new(direction : Int?, speed : Int) -> Wind {
+  { direction, speed, }
+}
+
+///|
 /// Accessors.
 pub fn Wind::direction(self : Wind) -> Int? {
   self.direction
@@ -136,6 +144,51 @@ pub fn StationWinds::level_at(self : StationWinds, altitude : Int) -> Level? {
 ///|
 pub fn Bulletin::stations(self : Bulletin) -> Array[StationWinds] {
   self.stations
+}
+
+///|
+/// The levels the product forecasts, in feet MSL, as the `FT` header lists
+/// them. Stations do not all report every one of them.
+pub fn Bulletin::altitudes(self : Bulletin) -> Array[Int] {
+  self.altitudes
+}
+
+///|
+/// The WMO abbreviated heading of the product, such as `FBUS31 KWNO 221358`,
+/// when it carries one.
+pub fn Bulletin::wmo_header(self : Bulletin) -> String? {
+  self.wmo_header
+}
+
+///|
+/// The product designator, such as `FD1US1`, when the product carries one.
+pub fn Bulletin::designator(self : Bulletin) -> String? {
+  self.designator
+}
+
+///|
+/// The observation time the forecast is based on, as the product writes it.
+pub fn Bulletin::based_on(self : Bulletin) -> String? {
+  self.based_on
+}
+
+///|
+/// The time the forecast is valid for, as the product writes it.
+pub fn Bulletin::valid(self : Bulletin) -> String? {
+  self.valid
+}
+
+///|
+/// The window the forecast is meant to be used in, as the product writes it.
+pub fn Bulletin::use_window(self : Bulletin) -> String? {
+  self.use_window
+}
+
+///|
+/// The altitude above which temperatures are reported without a sign, in feet
+/// MSL, from `TEMPS NEG ABV n`; 24,000 ft in current products.
+pub fn Bulletin::temps_negative_above(self : Bulletin) -> Int? {
+  self.temps_negative_above
 }
 
 ///|

@@ -1,0 +1,8 @@
+import {
+  "MWQCODEX/moonwind",
+  "moonbitlang/core/env",
+  "moonbitlang/core/math",
+  "moonbitlang/core/string",
+}
+
+pkgtype(kind: "executable")

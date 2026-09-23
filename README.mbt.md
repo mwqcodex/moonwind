@@ -3,7 +3,8 @@
 Upper-air weather for flight planning, in pure MoonBit: winds and
 temperatures aloft (FD) bulletins, the wind-triangle calculations that turn
 them into headings, ground speeds and crosswind components, and the
-great-circle routes those are flown along.
+great-circle routes those are flown along. `cmd/main` is a demo that plans a
+route from the command line.
 
 ```moonbit nocheck
 ///|
@@ -119,6 +120,11 @@ and a crosswind is positive when it comes from the right of the track. The
 wind correction angle has the same sign as the crosswind, so steering into the
 wind is steering by the correction angle.
 
+A wind does not have to come from a bulletin: `Wind::new(Some(150), 14)` is
+150 degrees at 14 kt, and `WindVector::from_wind` turns a reported wind into
+the vector a triangle solves. The other way round, `WindVector::to_wind`
+reads a wind back off a vector, as a rounded direction and speed.
+
 A crosswind stronger than the airspeed has no solution — the aircraft cannot
 hold the course at any heading — and `solve` reports it with
 `FlightError::CrosswindExceedsAirspeed` rather than returning a heading that
@@ -206,6 +212,38 @@ the airspeed, so the ground speed comes out at or below zero — with
 `FlightError::NoGroundSpeed`, rather than being given a time that means
 nothing.
 
+## Running the demo
+
+`cmd/main` plans a route against one of the products it carries and prints it
+leg by leg:
+
+```
+moon run cmd/main
+moon run cmd/main -- --station ABR --altitude 12000 --airspeed 120 \
+    --legs 4 45,-98 44,-96 43,-94
+```
+
+```
+moonwind — a flight plan from a winds and temperatures aloft product
+
+  product   fd1us1  FD1US1  valid 221800Z
+  station   ABR at 12000 ft: 150 at 14 kt, 1.0 C
+  route     3 waypoints, 2 legs, 210.4 nm, at 120 kt
+
+  leg  1   45.00N 98.00W -> 44.00N 96.00W
+          104.6 nm on course 124.3, wind 150 at 14 kt, heading 127.2 at 107.2 kt, 0.98 h
+          6.1 kt across, 12.6 kt along
+  leg  2   44.00N 96.00W -> 43.00N 94.00W
+          105.8 nm on course 123.9, wind 150 at 14 kt, heading 126.8 at 107.3 kt, 0.99 h
+          6.2 kt across, 12.6 kt along
+
+  total     210.4 nm in 1 h 58 min
+```
+
+`--help` lists the options, `--list` lists the stations of a product, and
+`--product fd8us7` plans at 45,000 and 53,000 ft with the high-level product.
+The products it carries are the real ones the tests run against.
+
 ## Testing
 
 ```
@@ -213,13 +251,16 @@ moon test
 ```
 
 The tests run against real products captured from the Aviation Weather
-Center text data API, stored in `tests/fixtures/` and embedded into the test
-build by `scripts/gen_fixtures.py`:
+Center text data API, stored in `tests/fixtures/` and embedded into the build
+by `scripts/gen_fixtures.py`:
 
 ```
 python scripts/gen_fixtures.py > fd_fixtures_wbtest.mbt
+python scripts/gen_fixtures.py --cli > cmd/main/sample.mbt
+moon fmt
 ```
 
 They cover the decode rules, the golden values of specific stations, a
-byte-for-byte round trip of every product, and the interpolation, conversion,
-standard-atmosphere and great-circle values quoted above.
+byte-for-byte round trip of every product, the interpolation, conversion,
+standard-atmosphere and great-circle values quoted above, and the command
+line demo's reading of its arguments.

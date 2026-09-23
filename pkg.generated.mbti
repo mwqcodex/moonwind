@@ -51,6 +51,11 @@ pub suberror FdError {
   BadTemperature(String)
 }
 
+pub suberror FlightError {
+  BadAirspeed(Double)
+  CrosswindExceedsAirspeed(Double, Double)
+}
+
 // Types and methods
 pub struct Bulletin {
   header : Array[String]
@@ -77,6 +82,17 @@ pub fn Level::altitude(Self) -> Int
 pub fn Level::temperature(Self) -> Int?
 pub fn Level::wind(Self) -> Wind
 
+pub struct Runway {
+  designator : String
+  heading : Int
+}
+pub fn Runway::crosswind(Self, Wind) -> Double
+pub fn Runway::designator(Self) -> String
+pub fn Runway::heading(Self) -> Int
+pub fn Runway::headwind(Self, Wind) -> Double
+pub fn Runway::parse(String) -> Self?
+pub fn Runway::reciprocal(Self) -> Self?
+
 pub struct StationWinds {
   station : String
   levels : Array[Level]
@@ -98,13 +114,35 @@ pub fn Wind::direction(Self) -> Int?
 pub fn Wind::is_light_and_variable(Self) -> Bool
 pub fn Wind::speed(Self) -> Int
 
+pub struct WindTriangle {
+  course : Double
+  airspeed : Double
+  wind : WindVector
+  heading : Double
+  wind_correction_angle : Double
+  ground_speed : Double
+  headwind : Double
+  crosswind : Double
+}
+pub fn WindTriangle::airspeed(Self) -> Double
+pub fn WindTriangle::course(Self) -> Double
+pub fn WindTriangle::crosswind(Self) -> Double
+pub fn WindTriangle::ground_speed(Self) -> Double
+pub fn WindTriangle::heading(Self) -> Double
+pub fn WindTriangle::headwind(Self) -> Double
+pub fn WindTriangle::solve(Double, Double, WindVector) -> Self raise FlightError
+pub fn WindTriangle::wind(Self) -> WindVector
+pub fn WindTriangle::wind_correction_angle(Self) -> Double
+
 pub struct WindVector {
   u : Double
   v : Double
 }
+pub fn WindVector::crosswind_component(Self, Double) -> Double
 pub fn WindVector::direction(Self) -> Double
 pub fn WindVector::from_components(Double, Double) -> Self
 pub fn WindVector::from_wind(Wind) -> Self
+pub fn WindVector::headwind_component(Self, Double) -> Double
 pub fn WindVector::interpolate(Self, Self, Double) -> Self
 pub fn WindVector::speed(Self) -> Double
 pub fn WindVector::to_wind(Self) -> Wind

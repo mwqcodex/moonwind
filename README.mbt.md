@@ -142,6 +142,56 @@ A relative humidity has to be above zero and at most 100, and air cannot have a
 dew point above its own temperature. Both are refused with `HumidityError`
 rather than answered with a number that does not exist.
 
+## Apparent temperature
+
+`apparent_temperature.mbt` answers the other half of what a forecast is read
+for: not how warm the air is, but how warm it feels. Moving air carries heat
+away from skin, so a cold day feels colder in a wind; humid air cannot take
+sweat away, so a warm day feels warmer.
+
+The wind chill is the formula the National Weather Service and Environment
+Canada adopted in 2001, in the two sets of units it is published in —
+Fahrenheit and miles per hour in the United States, Celsius and kilometres per
+hour in Canada:
+
+```moonbit nocheck
+///|
+let american = @moonwind.wind_chill_fahrenheit(0.0, 15.0) // Some(-19.4), the chart's -19
+
+///|
+let canadian = @moonwind.wind_chill_celsius(0.0, 20.0) // Some(-5.2)
+```
+
+`wind_chill_from_wind` reads a reported `Wind` instead, converting the knots it
+is kept in, and answers a light and variable wind — the one with no direction —
+with `None`, as it does any temperature above 10 °C.
+
+The heat index is the American regression over humidity, the humidex the
+Canadian index of the same thing, and the apparent temperature the Bureau of
+Meteorology's "feels like", which counts the wind as well as the humidity:
+
+```moonbit nocheck
+///|
+let heat = @moonwind.heat_index_celsius(30.0, 50.0) // 31.05, 86 F at 50 %
+
+///|
+let humid = @moonwind.humidex(30.0, 15.0) // 33.9, Environment Canada's example
+
+///|
+let feels = @moonwind.apparent_temperature(30.0, 80.0, 10.0 / 3.6) // 35.24, the Bureau's
+```
+
+Each index is read only where it was fitted, and answers `None` outside that
+rather than extrapolating into a number no service publishes: the wind chill at
+or below 50 °F (10 °C) with a wind above 3 mph (4.8 km/h), the heat index from
+80 °F to 112 °F. The humidex and the apparent temperature are defined wherever
+their inputs are.
+
+A relative humidity has to be between 0 and 100 and a wind speed cannot be
+negative; both are refused with `ApparentTemperatureError`. The humidex reads
+its vapour pressure from the humidity module, so a dew point above the air
+temperature is refused there, with `HumidityError`.
+
 ## The wind triangle
 
 The wind that is forecast is not the wind the aeroplane flies through: it
@@ -307,8 +357,8 @@ moon fmt
 
 They cover the decode rules, the golden values of specific stations, a
 byte-for-byte round trip of every product, the interpolation, conversion,
-standard-atmosphere, humidity and great-circle values quoted above, and the
-command line demo's reading of its arguments.
+standard-atmosphere, humidity, apparent-temperature and great-circle values
+quoted above, and the command line demo's reading of its arguments.
 
 The package also carries benchmarks, run against the same real product:
 
@@ -316,9 +366,9 @@ The package also carries benchmarks, run against the same real product:
 moon bench --release benchmarks
 ```
 
-one benchmark per thing a flight plan is made of — parsing a product,
-writing one back, the wind at a flight level, a wind triangle, a
-great-circle hop and a position along it, cutting a route into legs,
-planning a whole route, and a dew point and a wet-bulb temperature — so a
-change to the parsing or the arithmetic shows up in the numbers rather than
-being argued about.
+one benchmark per thing the library does — parsing a product, writing one
+back, the wind at a flight level, a wind triangle, a great-circle hop and a
+position along it, cutting a route into legs, planning a whole route, a dew
+point, a wet-bulb temperature, a heat index and a wind chill — so a change to
+the parsing or the arithmetic shows up in the numbers rather than being argued
+about.

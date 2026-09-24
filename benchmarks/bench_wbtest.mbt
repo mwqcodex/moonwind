@@ -163,3 +163,32 @@ test "a wet-bulb temperature" (it : @bench.T) {
     )
   })
 }
+
+///|
+/// A heat index, which is the nine-term regression and whichever of its two
+/// corrections the humidity calls for.
+test "a heat index" (it : @bench.T) {
+  let index = @moonwind.heat_index_celsius(30.0, 50.0) catch { _ => None }
+  it.bench(fn() {
+    it.keep(
+      match index {
+        Some(value) => value
+        None => 0.0
+      },
+    )
+  })
+}
+
+///|
+/// A wind chill, which is one power and four multiplications.
+test "a wind chill" (it : @bench.T) {
+  let chill = @moonwind.wind_chill_celsius(0.0, 20.0) catch { _ => None }
+  it.bench(fn() {
+    it.keep(
+      match chill {
+        Some(value) => value
+        None => 0.0
+      },
+    )
+  })
+}

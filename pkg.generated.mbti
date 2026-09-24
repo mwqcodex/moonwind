@@ -6,9 +6,13 @@ import {
 }
 
 // Values
+pub fn absolute_humidity(Double, Double) -> Double
+
 pub fn celsius_to_fahrenheit(Double) -> Double
 
 pub fn decode_wind(String) -> Wind raise FdError
+
+pub fn dew_point(Double, Double) -> Double raise HumidityError
 
 pub fn encode_level(Level) -> String raise FdError
 
@@ -25,6 +29,8 @@ pub fn field_layout(Array[Int]) -> Array[(Int, Int)]
 pub fn format_bulletin(Bulletin) -> String raise FdError
 
 pub fn format_station(StationWinds, Array[Int]) -> String raise FdError
+
+pub fn frost_point(Double, Double) -> Double raise HumidityError
 
 pub fn isa_deviation(Double, Double) -> Double
 
@@ -46,6 +52,14 @@ pub fn miles_per_hour_to_knots(Double) -> Double
 
 pub fn parse_bulletin(String) -> Bulletin raise FdError
 
+pub fn relative_humidity(Double, Double) -> Double raise HumidityError
+
+pub fn saturation_vapor_pressure(Double) -> Double
+
+pub fn saturation_vapor_pressure_over_ice(Double) -> Double
+
+pub fn wet_bulb_temperature(Double, Double) -> Double?
+
 // Errors
 pub suberror FdError {
   MissingLevelHeader
@@ -60,6 +74,11 @@ pub suberror FlightError {
   CrosswindExceedsAirspeed(Double, Double)
   NoForecast(Int)
   NoGroundSpeed(Double)
+}
+
+pub suberror HumidityError {
+  BadRelativeHumidity(Double)
+  DewPointAboveTemperature(Double, Double)
 }
 
 // Types and methods

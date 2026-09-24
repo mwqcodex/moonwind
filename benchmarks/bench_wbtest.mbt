@@ -199,3 +199,29 @@ test "a wind chill" (it : @bench.T) {
 test "a density altitude" (it : @bench.T) {
   it.bench(fn() { it.keep(@moonwind.density_altitude(1000.0, 30.0)) })
 }
+
+///|
+/// A wind read on the Beaufort scale, which is a walk down a table of thirteen
+/// bounds.
+test "a beaufort force" (it : @bench.T) {
+  let fallback = @moonwind.Beaufort::from_knots(0.0) catch {
+    _ => abort("the scale reads a calm")
+  }
+  it.bench(fn() {
+    it.keep(@moonwind.Beaufort::from_knots(14.0) catch { _ => fallback })
+  })
+}
+
+///|
+/// A wind barb, counted out in pennants, full barbs and half barbs, and drawn
+/// with the station plot's characters.
+test "a wind barb" (it : @bench.T) {
+  let wind = @moonwind.Wind::new(Some(270), 25)
+  let fallback = @moonwind.WindBarb::from_wind(wind) catch {
+    _ => abort("the barb draws")
+  }
+  it.bench(fn() {
+    let barb = @moonwind.WindBarb::from_wind(wind) catch { _ => fallback }
+    it.keep(barb.to_unicode())
+  })
+}

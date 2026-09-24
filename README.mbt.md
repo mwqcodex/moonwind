@@ -249,6 +249,60 @@ the standard troposphere would reach absolute zero — has no altimeter setting
 and is refused with `PressureError`, and a dew point above the air temperature
 is refused with `HumidityError`, as it is by `relative_humidity`.
 
+## Beaufort and the wind barb
+
+The last two modules write a wind the way a forecast writes it: as a force on
+the Beaufort scale, and as a barb drawn on a station plot.
+
+```moonbit nocheck
+///|
+let breeze = @moonwind.Beaufort::from_knots(14.0) // force 4, "Moderate breeze"
+
+///|
+let force = breeze.description() // "Moderate breeze"
+
+///|
+let band = breeze.upper_bound_knots() // Some(17.0), where force 5 begins
+
+///|
+let reported = @moonwind.Beaufort::from_wind(wind) // 150 at 14 kt is the same breeze
+```
+
+Each force covers a band of speeds, closed at the bottom, and the bands are
+published in knots, in metres per second and in kilometres per hour — rounded
+separately, so they do not quite agree at the edges. 3.4 m/s is 6.61 kt, which
+the metres-per-second table calls force 3 and the knots table force 2.
+`from_knots`, `from_meters_per_second` and `from_kilometers_per_hour` each read
+their own table rather than converting, so a report is answered in the scale it
+was written against.
+
+A wind barb counts the speed in the increments a station plot has room for — a
+pennant for 50 knots, a full barb for 10, a half barb for 5 — and a calm is a
+circle with no staff:
+
+```moonbit nocheck
+///|
+let barb = @moonwind.WindBarb::from_wind(wind) // 270 at 25 kt
+
+///|
+let feathers = (barb.pennants(), barb.full_barbs(), barb.half_barbs()) // (0, 2, 1)
+
+///|
+let drawn = barb.to_unicode() // "──╌│"
+
+///|
+let plain = barb.to_ascii() // "==-|", for a font with no pennant glyph
+```
+
+The direction is held in tens of degrees, 0 meaning the wind has none and 36
+meaning north, so a direction that comes in as 0° reads back out as 0°. The
+speed is drawn to the nearest 5 knots, which is all the feathers can say — a
+12 kt wind is drawn as 10 — so a barb read back with `to_wind` carries the
+rounded speed.
+
+A negative wind speed is refused by both modules, with `BeaufortError` and
+`WindBarbError`: a wind does not blow backwards.
+
 ## The wind triangle
 
 The wind that is forecast is not the wind the aeroplane flies through: it
@@ -414,8 +468,9 @@ moon fmt
 
 They cover the decode rules, the golden values of specific stations, a
 byte-for-byte round trip of every product, the interpolation, conversion,
-standard-atmosphere, humidity, apparent-temperature, pressure and great-circle
-values quoted above, and the command line demo's reading of its arguments.
+standard-atmosphere, humidity, apparent-temperature, pressure, Beaufort, wind
+barb and great-circle values quoted above, and the command line demo's reading
+of its arguments.
 
 The package also carries benchmarks, run against the same real product:
 
@@ -426,6 +481,6 @@ moon bench --release benchmarks
 one benchmark per thing the library does — parsing a product, writing one
 back, the wind at a flight level, a wind triangle, a great-circle hop and a
 position along it, cutting a route into legs, planning a whole route, a dew
-point, a wet-bulb temperature, a heat index, a wind chill and a density
-altitude — so a change to the parsing or the arithmetic shows up in the numbers
-rather than being argued about.
+point, a wet-bulb temperature, a heat index, a wind chill, a density altitude,
+a Beaufort force and a wind barb — so a change to the parsing or the arithmetic
+shows up in the numbers rather than being argued about.

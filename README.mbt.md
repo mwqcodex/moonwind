@@ -97,6 +97,51 @@ let standard = @moonwind.isa_temperature(24000.0) // -32.5488
 let deviation = @moonwind.isa_deviation(-25.0, 24000.0) // 7.5488, warmer than standard
 ```
 
+## Humidity
+
+`humidity.mbt` reads the water in the air: the saturation vapour pressure at a
+temperature, the dew point of air at a temperature and a humidity, the relative
+humidity of air at a temperature and a dew point, the frost point against ice,
+the wet-bulb temperature, and the water a cubic metre holds.
+
+They are all read off one Magnus form, from Alduchov and Eskridge (1996) —
+`6.1094 · exp(17.625·T / (T + 243.04))` over water and
+`6.1121 · exp(22.587·T / (T + 273.86))` over ice, both in hectopascals — so a
+vapour pressure and a dew point are exact inverses of each other. The
+saturation vapour pressure at a temperature is also the actual vapour pressure
+of air whose dew point that temperature is, which is how the rest are read off
+it.
+
+```moonbit nocheck
+///|
+let dew = @moonwind.dew_point(20.0, 50.0) // 9.26 °C, the classic Magnus example
+
+///|
+let back = @moonwind.relative_humidity(20.0, dew) // 50 %
+
+///|
+let frost = @moonwind.frost_point(-10.0, 50.0) // -16.52, above its -18.47 dew point
+
+///|
+let wet = @moonwind.wet_bulb_temperature(20.0, 50.0) // Some(13.70)
+
+///|
+let grams = @moonwind.absolute_humidity(
+  @moonwind.saturation_vapor_pressure(20.0),
+  20.0,
+) // 17.25 g/m³
+```
+
+The wet-bulb temperature is Stull's fit (2011), worked out over 5 % to 99 %
+humidity and −20 °C to 50 °C. Outside that the function answers `None` rather
+than extrapolating, and saturated air is outside it as well: the fit drifts
+there, and the wet-bulb temperature of saturated air is the air temperature
+itself.
+
+A relative humidity has to be above zero and at most 100, and air cannot have a
+dew point above its own temperature. Both are refused with `HumidityError`
+rather than answered with a number that does not exist.
+
 ## The wind triangle
 
 The wind that is forecast is not the wind the aeroplane flies through: it
@@ -262,8 +307,8 @@ moon fmt
 
 They cover the decode rules, the golden values of specific stations, a
 byte-for-byte round trip of every product, the interpolation, conversion,
-standard-atmosphere and great-circle values quoted above, and the command
-line demo's reading of its arguments.
+standard-atmosphere, humidity and great-circle values quoted above, and the
+command line demo's reading of its arguments.
 
 The package also carries benchmarks, run against the same real product:
 
@@ -273,6 +318,7 @@ moon bench --release benchmarks
 
 one benchmark per thing a flight plan is made of — parsing a product,
 writing one back, the wind at a flight level, a wind triangle, a
-great-circle hop and a position along it, cutting a route into legs, and
-planning a whole route — so a change to the parsing or the arithmetic shows
-up in the numbers rather than being argued about.
+great-circle hop and a position along it, cutting a route into legs,
+planning a whole route, and a dew point and a wet-bulb temperature — so a
+change to the parsing or the arithmetic shows up in the numbers rather than
+being argued about.

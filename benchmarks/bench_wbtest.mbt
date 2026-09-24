@@ -142,3 +142,24 @@ test "plan a 24-leg route" (it : @bench.T) {
     it.keep(route.plan(station, 12000, 120.0) catch { _ => fallback })
   })
 }
+
+///|
+/// A dew point from a temperature and a humidity, which is a Magnus inversion
+/// and one logarithm.
+test "a dew point" (it : @bench.T) {
+  it.bench(fn() { it.keep(@moonwind.dew_point(20.0, 60.0) catch { _ => 0.0 }) })
+}
+
+///|
+/// A wet-bulb temperature, the heaviest of the humidity calculations: four
+/// arc tangents, a square root and a power.
+test "a wet-bulb temperature" (it : @bench.T) {
+  it.bench(fn() {
+    it.keep(
+      match @moonwind.wet_bulb_temperature(25.0, 50.0) {
+        Some(temperature) => temperature
+        None => 0.0
+      },
+    )
+  })
+}

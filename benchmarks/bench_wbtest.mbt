@@ -192,3 +192,10 @@ test "a wind chill" (it : @bench.T) {
     )
   })
 }
+
+///|
+/// A density altitude, which is a pressure altitude and the standard
+/// atmosphere's temperature at it.
+test "a density altitude" (it : @bench.T) {
+  it.bench(fn() { it.keep(@moonwind.density_altitude(1000.0, 30.0)) })
+}

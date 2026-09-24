@@ -192,6 +192,63 @@ negative; both are refused with `ApparentTemperatureError`. The humidex reads
 its vapour pressure from the humidity module, so a dew point above the air
 temperature is refused there, with `HumidityError`.
 
+## Pressure and altitude
+
+`pressure.mbt` does the barometry: the units a pressure is reported in, the
+reduction to sea level that makes two stations comparable, the altimeter
+setting an aircraft's altimeter is read against, and the two altitudes that
+come out of the standard atmosphere.
+
+```moonbit nocheck
+///|
+let sea_level = @moonwind.mean_sea_level_pressure(955.0, 500.0, 20.0) // 1011.98 hPa
+
+///|
+let station = @moonwind.station_pressure(1012.0, 500.0, 20.0) // 955.02 hPa, its inverse
+
+///|
+let setting = @moonwind.altimeter_setting_hpa(954.61, 500.0) // 1013.25 hPa, a standard station at 500 m
+
+///|
+let inches = @moonwind.altimeter_setting_inhg(954.61, 500.0) // 29.92, the same setting
+```
+
+The sea-level reduction takes the weight of the air between the station and the
+sea back out of the reading, along the column that the station's own
+temperature implies — the best a station can say about a column it has one
+reading from. The altimeter setting is the same idea written as the barometric
+formula and takes no temperature at all: it is defined so that an altimeter
+standing on the field reads the elevation of the field.
+
+The other two altitudes are heights in the standard atmosphere rather than
+reductions of a station — where that pressure is found, and where that air
+density is found:
+
+```moonbit nocheck
+///|
+let pressure_altitude = @moonwind.pressure_altitude(850.0) // 4781.17 ft, the 850 hPa level
+
+///|
+let hot_day = @moonwind.density_altitude(1013.25, 25.0) // 1200.0 ft, 120 ft per degree
+
+///|
+let damp_day = @moonwind.density_altitude_with_dew_point(1013.25, 25.0, 15.0) // 1377.0 ft, the vapour counted too
+```
+
+`density_altitude` is the rule of thumb a pilot reads off a chart, 120 ft for
+every degree the air is warmer than the standard atmosphere, and it reads a
+little high: the exact answer for dry air on a 25 °C day at sea level is
+1,162 ft. `density_altitude_with_dew_point` reads the density instead, with the
+vapour in it counted through the virtual temperature — 218 ft of the answer on
+a saturated 15 °C day at sea level, 109 ft at 50 % humidity.
+
+The four conversions at the top of the module read a pressure in hectopascals,
+inches of mercury or millimetres of mercury, an altimeter setting being read
+aloud in inches over much of the world. An elevation above 44330.77 m — where
+the standard troposphere would reach absolute zero — has no altimeter setting
+and is refused with `PressureError`, and a dew point above the air temperature
+is refused with `HumidityError`, as it is by `relative_humidity`.
+
 ## The wind triangle
 
 The wind that is forecast is not the wind the aeroplane flies through: it
@@ -357,8 +414,8 @@ moon fmt
 
 They cover the decode rules, the golden values of specific stations, a
 byte-for-byte round trip of every product, the interpolation, conversion,
-standard-atmosphere, humidity, apparent-temperature and great-circle values
-quoted above, and the command line demo's reading of its arguments.
+standard-atmosphere, humidity, apparent-temperature, pressure and great-circle
+values quoted above, and the command line demo's reading of its arguments.
 
 The package also carries benchmarks, run against the same real product:
 
@@ -369,6 +426,6 @@ moon bench --release benchmarks
 one benchmark per thing the library does — parsing a product, writing one
 back, the wind at a flight level, a wind triangle, a great-circle hop and a
 position along it, cutting a route into legs, planning a whole route, a dew
-point, a wet-bulb temperature, a heat index and a wind chill — so a change to
-the parsing or the arithmetic shows up in the numbers rather than being argued
-about.
+point, a wet-bulb temperature, a heat index, a wind chill and a density
+altitude — so a change to the parsing or the arithmetic shows up in the numbers
+rather than being argued about.

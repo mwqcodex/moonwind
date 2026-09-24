@@ -102,6 +102,10 @@ pub suberror ApparentTemperatureError {
   BadWindSpeed(Double)
 }
 
+pub suberror BeaufortError {
+  BadWindSpeed(Double)
+}
+
 pub suberror FdError {
   MissingLevelHeader
   BadLevelHeader(String)
@@ -126,7 +130,23 @@ pub suberror PressureError {
   ElevationTooHigh(Double)
 }
 
+pub suberror WindBarbError {
+  BadWindSpeed(Double)
+}
+
 // Types and methods
+pub struct Beaufort {
+  force : Int
+}
+pub fn Beaufort::description(Self) -> String
+pub fn Beaufort::force(Self) -> Int
+pub fn Beaufort::from_kilometers_per_hour(Double) -> Self raise BeaufortError
+pub fn Beaufort::from_knots(Double) -> Self raise BeaufortError
+pub fn Beaufort::from_meters_per_second(Double) -> Self raise BeaufortError
+pub fn Beaufort::from_wind(Wind) -> Self raise BeaufortError
+pub fn Beaufort::lower_bound_knots(Self) -> Double
+pub fn Beaufort::upper_bound_knots(Self) -> Double?
+
 pub struct Bulletin {
   header : Array[String]
   level_header : String
@@ -257,6 +277,24 @@ pub fn Wind::direction(Self) -> Int?
 pub fn Wind::is_light_and_variable(Self) -> Bool
 pub fn Wind::new(Int?, Int) -> Self
 pub fn Wind::speed(Self) -> Int
+
+pub struct WindBarb {
+  direction_tens : Int
+  pennants : Int
+  full_barbs : Int
+  half_barbs : Int
+}
+pub fn WindBarb::direction_tens(Self) -> Int
+pub fn WindBarb::from_knots(Int?, Double) -> Self raise WindBarbError
+pub fn WindBarb::from_wind(Wind) -> Self raise WindBarbError
+pub fn WindBarb::full_barbs(Self) -> Int
+pub fn WindBarb::half_barbs(Self) -> Int
+pub fn WindBarb::is_calm(Self) -> Bool
+pub fn WindBarb::pennants(Self) -> Int
+pub fn WindBarb::speed_knots(Self) -> Double
+pub fn WindBarb::to_ascii(Self) -> String
+pub fn WindBarb::to_unicode(Self) -> String
+pub fn WindBarb::to_wind(Self) -> Wind
 
 pub struct WindTriangle {
   course : Double

@@ -1,10 +1,13 @@
 # moonwind
 
-Upper-air weather for flight planning, in pure MoonBit: winds and
-temperatures aloft (FD) bulletins, the wind-triangle calculations that turn
-them into headings, ground speeds and crosswind components, and the
-great-circle routes those are flown along. `cmd/main` is a demo that plans a
-route from the command line.
+Weather computation in pure MoonBit: humidity, apparent temperature, pressure
+and altitude, the Beaufort scale and wind barbs — the questions anyone asks of
+a weather report — plus the flight side, the winds and temperatures aloft (FD)
+bulletins and the wind-triangle, runway and great-circle route calculations
+that turn them into headings, ground speeds and crosswind components. The two
+halves share one set of units and one standard atmosphere, so a dew point, a
+density altitude and a flight plan all come out of the same numbers.
+`cmd/main` is a demo that plans a route from the command line.
 
 ```moonbit nocheck
 ///|

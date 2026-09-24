@@ -1,7 +1,16 @@
 ///|
-/// Upper-air weather for flight planning, in pure MoonBit.
+/// Weather computation in pure MoonBit, in the layers a weather report is
+/// read in.
 ///
-/// Two layers, usable together or on their own:
+/// Three layers, usable together or on their own:
+///
+/// * weather calculations - humidity (`dew_point`, `wet_bulb_temperature`,
+///   `absolute_humidity`), apparent temperature (`wind_chill_celsius`,
+///   `heat_index_celsius`, `humidex`), pressure and altitude
+///   (`mean_sea_level_pressure`, `altimeter_setting_hpa`, `density_altitude`),
+///   and the Beaufort scale and wind barbs: the numbers a weather report can
+///   be turned into, from the formulas and tables the weather services
+///   publish.
 ///
 /// * `parse_bulletin` / `format_bulletin` - read the winds and temperatures
 ///   aloft (FD) bulletins that aviation weather services publish, and write

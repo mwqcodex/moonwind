@@ -9,14 +9,19 @@ repository = "https://github.com/MWQCODEX/moonwind"
 license = "Apache-2.0"
 
 keywords = [
-  "aviation",
   "weather",
+  "meteorology",
+  "humidity",
+  "apparent-temperature",
+  "pressure-altitude",
+  "beaufort",
+  "wind-barb",
+  "aviation",
   "winds-aloft",
-  "fd",
   "wind-triangle",
   "flight-planning",
 ]
 
 preferred_target = "wasm"
 
-description = "Winds and temperatures aloft (FD) bulletins and wind-triangle flight calculations in pure MoonBit"
+description = "Weather computation in pure MoonBit: humidity, apparent temperature, pressure and altitude, the Beaufort scale, wind barbs, and winds-aloft (FD) flight calculations"

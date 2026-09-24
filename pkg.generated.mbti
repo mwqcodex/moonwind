@@ -8,6 +8,8 @@ import {
 // Values
 pub fn absolute_humidity(Double, Double) -> Double
 
+pub fn apparent_temperature(Double, Double, Double) -> Double raise ApparentTemperatureError
+
 pub fn celsius_to_fahrenheit(Double) -> Double
 
 pub fn decode_wind(String) -> Wind raise FdError
@@ -31,6 +33,12 @@ pub fn format_bulletin(Bulletin) -> String raise FdError
 pub fn format_station(StationWinds, Array[Int]) -> String raise FdError
 
 pub fn frost_point(Double, Double) -> Double raise HumidityError
+
+pub fn heat_index_celsius(Double, Double) -> Double? raise ApparentTemperatureError
+
+pub fn heat_index_fahrenheit(Double, Double) -> Double? raise ApparentTemperatureError
+
+pub fn humidex(Double, Double) -> Double raise HumidityError
 
 pub fn isa_deviation(Double, Double) -> Double
 
@@ -60,7 +68,18 @@ pub fn saturation_vapor_pressure_over_ice(Double) -> Double
 
 pub fn wet_bulb_temperature(Double, Double) -> Double?
 
+pub fn wind_chill_celsius(Double, Double) -> Double? raise ApparentTemperatureError
+
+pub fn wind_chill_fahrenheit(Double, Double) -> Double? raise ApparentTemperatureError
+
+pub fn wind_chill_from_wind(Wind, Double) -> Double? raise ApparentTemperatureError
+
 // Errors
+pub suberror ApparentTemperatureError {
+  BadRelativeHumidity(Double)
+  BadWindSpeed(Double)
+}
+
 pub suberror FdError {
   MissingLevelHeader
   BadLevelHeader(String)

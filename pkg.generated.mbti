@@ -8,11 +8,19 @@ import {
 // Values
 pub fn absolute_humidity(Double, Double) -> Double
 
+pub fn altimeter_setting_hpa(Double, Double) -> Double raise PressureError
+
+pub fn altimeter_setting_inhg(Double, Double) -> Double raise PressureError
+
 pub fn apparent_temperature(Double, Double, Double) -> Double raise ApparentTemperatureError
 
 pub fn celsius_to_fahrenheit(Double) -> Double
 
 pub fn decode_wind(String) -> Wind raise FdError
+
+pub fn density_altitude(Double, Double) -> Double
+
+pub fn density_altitude_with_dew_point(Double, Double, Double) -> Double raise HumidityError
 
 pub fn dew_point(Double, Double) -> Double raise HumidityError
 
@@ -38,7 +46,13 @@ pub fn heat_index_celsius(Double, Double) -> Double? raise ApparentTemperatureEr
 
 pub fn heat_index_fahrenheit(Double, Double) -> Double? raise ApparentTemperatureError
 
+pub fn hectopascals_to_inches_of_mercury(Double) -> Double
+
+pub fn hectopascals_to_millimeters_of_mercury(Double) -> Double
+
 pub fn humidex(Double, Double) -> Double raise HumidityError
+
+pub fn inches_of_mercury_to_hectopascals(Double) -> Double
 
 pub fn isa_deviation(Double, Double) -> Double
 
@@ -52,19 +66,27 @@ pub fn knots_to_meters_per_second(Double) -> Double
 
 pub fn knots_to_miles_per_hour(Double) -> Double
 
+pub fn mean_sea_level_pressure(Double, Double, Double) -> Double
+
 pub fn meters_per_second_to_knots(Double) -> Double
 
 pub fn meters_to_feet(Double) -> Double
 
 pub fn miles_per_hour_to_knots(Double) -> Double
 
+pub fn millimeters_of_mercury_to_hectopascals(Double) -> Double
+
 pub fn parse_bulletin(String) -> Bulletin raise FdError
+
+pub fn pressure_altitude(Double) -> Double
 
 pub fn relative_humidity(Double, Double) -> Double raise HumidityError
 
 pub fn saturation_vapor_pressure(Double) -> Double
 
 pub fn saturation_vapor_pressure_over_ice(Double) -> Double
+
+pub fn station_pressure(Double, Double, Double) -> Double
 
 pub fn wet_bulb_temperature(Double, Double) -> Double?
 
@@ -98,6 +120,10 @@ pub suberror FlightError {
 pub suberror HumidityError {
   BadRelativeHumidity(Double)
   DewPointAboveTemperature(Double, Double)
+}
+
+pub suberror PressureError {
+  ElevationTooHigh(Double)
 }
 
 // Types and methods

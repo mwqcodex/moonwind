@@ -30,6 +30,12 @@ priv struct Request {
   airspeed : Double
   legs : Int
   waypoints : Array[@moonwind.Coordinate]
+  /// Compare every forecast level instead of planning one.
+  levels : Bool
+  /// Fuel burnt per hour, when the command line asked for a fuel figure.
+  burn : Double?
+  /// Reserve fuel, in minutes of flying.
+  reserve_minutes : Double
 }
 
 ///|
@@ -65,8 +71,10 @@ fn usage() -> String {
     "  --station ID     the station to read the wind from; the first station", "                   of the product by default",
     "  --altitude FT    the altitude to plan at, in feet: 12000 by default", "  --airspeed KT    the true airspeed, in knots: 120 by default",
     "  --legs N         divide every hop into N legs, so that the course of", "                   each one stays close to the course at its start",
-    "  --list           list the stations the product reports", "  --help           this",
-    "", "Waypoints are latitudes and longitudes in degrees, as in 45,-98, and at",
+    "  --levels         instead of planning one altitude, compare every level", "                   the station forecasts and report the fastest",
+    "  --burn RATE      fuel burnt per hour, which adds a fuel figure to the", "                   report; units are whatever the rate is given in",
+    "  --reserve MIN    reserve fuel in minutes of flying: 45 by default", "  --list           list the stations the product reports",
+    "  --help           this", "", "Waypoints are latitudes and longitudes in degrees, as in 45,-98, and at",
     "least two of them make a route. Without any, the demonstration route", "over the northern plains is planned.",
   ].join("\n")
 }
@@ -81,6 +89,9 @@ fn command(arguments : Array[String]) -> Command {
   let mut legs = 1
   let waypoints : Array[@moonwind.Coordinate] = []
   let mut list = false
+  let mut levels = false
+  let mut burn : Double? = None
+  let mut reserve_minutes = 45.0
   let mut index = 0
   while index < arguments.length() {
     let argument = arguments[index]
@@ -121,6 +132,29 @@ fn command(arguments : Array[String]) -> Command {
         None => return Bad("--airspeed needs an airspeed in knots")
       }
       index = index + 2
+    } else if argument == "--levels" {
+      levels = true
+      index = index + 1
+    } else if argument == "--burn" {
+      match following(arguments, index) {
+        Some(value) =>
+          match number(value) {
+            Some(rate) => burn = Some(rate)
+            None => return Bad("\{value} is not a fuel rate per hour")
+          }
+        None => return Bad("--burn needs a fuel rate per hour")
+      }
+      index = index + 2
+    } else if argument == "--reserve" {
+      match following(arguments, index) {
+        Some(value) =>
+          match whole_number(value) {
+            Some(minutes) => reserve_minutes = minutes.to_double()
+            None => return Bad("\{value} is not a number of minutes")
+          }
+        None => return Bad("--reserve needs a number of minutes")
+      }
+      index = index + 2
     } else if argument == "--legs" {
       match following(arguments, index) {
         Some(value) =>
@@ -159,7 +193,17 @@ fn command(arguments : Array[String]) -> Command {
   if legs < 1 {
     return Bad("a route cannot be divided into fewer than one leg")
   }
-  Plan({ product, station, altitude, airspeed, legs, waypoints, })
+  Plan({
+    product,
+    station,
+    altitude,
+    airspeed,
+    legs,
+    waypoints,
+    levels,
+    burn,
+    reserve_minutes,
+  })
 }
 
 ///|
@@ -361,6 +405,10 @@ fn plan_route(request : Request) -> Unit {
     request.waypoints
   }
   let route = @moonwind.Route::new(waypoints).subdivided(request.legs)
+  if request.levels {
+    print_levels(route, station, bulletin, request)
+    return
+  }
   let plan = route.plan(station, request.altitude, request.airspeed) catch {
     @moonwind.FlightError::NoForecast(altitude) => {
       println(
@@ -409,7 +457,93 @@ fn plan_route(request : Request) -> Unit {
   println(
     "  total     \{fixed(plan.total_distance(), 1)} nm in \{hours_text(plan.total_time_hours())}",
   )
+  println(
+    "  wind      \{signed_hours(plan.wind_effect_hours())} against \{hours_text(plan.still_air_time_hours())} in still air",
+  )
+  match request.burn {
+    Some(rate) => fuel_line(plan, rate, request.reserve_minutes)
+    None => ()
+  }
   println("")
+}
+
+///|
+/// A signed duration in hours, written as minutes: what the wind cost, or
+/// gave back.
+fn signed_hours(hours : Double) -> String {
+  let magnitude = if hours < 0.0 { -hours } else { hours }
+  let minutes = (magnitude * 60.0 + 0.5).to_int()
+  if minutes == 0 {
+    "no time either way"
+  } else if hours > 0.0 {
+    "+\{minutes} min"
+  } else {
+    "-\{minutes} min"
+  }
+}
+
+///|
+/// The fuel a plan needs, on one line.
+fn fuel_line(
+  plan : @moonwind.RoutePlan,
+  burn : Double,
+  reserve_minutes : Double,
+) -> Unit {
+  let fuel = plan.fuel(burn, reserve_minutes)
+  println(
+    "  fuel      \{fixed(fuel.trip_fuel(), 1)} for the flight, \{fixed(fuel.reserve_fuel(), 1)} reserve (\{fixed(reserve_minutes, 0)} min), \{fixed(fuel.total_fuel(), 1)} aboard",
+  )
+}
+
+///|
+/// Every level the station forecasts, fastest first, with what the wind is
+/// worth at each.
+fn print_levels(
+  route : @moonwind.Route,
+  station : @moonwind.StationWinds,
+  bulletin : @moonwind.Bulletin,
+  request : Request,
+) -> Unit {
+  let plans = route.plans_at_levels(station, request.airspeed)
+  println("")
+  println("moonwind — the levels this forecast makes available")
+  println("")
+  if plans.length() == 0 {
+    println(
+      "  no level \{station.station()} forecasts can be flown at \{fixed(request.airspeed, 0)} kt",
+    )
+    return
+  }
+  println("  product   \{request.product}\{validity_text(bulletin)}")
+  println(
+    "  route     \{fixed(plans[0].total_distance(), 1)} nm at \{fixed(request.airspeed, 0)} kt",
+  )
+  println("")
+  println("  altitude   wind                     ground    time      wind")
+  for plan in plans {
+    println(
+      "  \{plan.altitude().to_string().pad_start(6, ' ')} ft   \{pad_right(wind_text(station_wind(station, plan.altitude())), 22)} \{pad_right(fixed(plan.total_distance() / plan.total_time_hours(), 1) + " kt", 8)}  \{pad_right(hours_text(plan.total_time_hours()), 8)}  \{signed_hours(plan.wind_effect_hours())}",
+    )
+  }
+  println("")
+  println(
+    "  fastest   \{plans[0].altitude()} ft, \{hours_text(plans[0].total_time_hours())}, \{signed_hours(plans[0].wind_effect_hours())}",
+  )
+  match request.burn {
+    Some(rate) => fuel_line(plans[0], rate, request.reserve_minutes)
+    None => ()
+  }
+  println("")
+}
+
+///|
+/// `text` padded on the right, so a column of them lines up.
+fn pad_right(text : String, width : Int) -> String {
+  let mut out = text
+  while out.length() < width {
+    out = out + " "
+  }
+  out
 }
 
 ///|

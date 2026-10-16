@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "MWQCODEX/moonwind"
+package "mwqcodex/moonwind"
 
 import {
   "moonbitlang/core/hashmap",

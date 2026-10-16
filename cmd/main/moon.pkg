@@ -1,5 +1,5 @@
 import {
-  "MWQCODEX/moonwind",
+  "mwqcodex/moonwind",
   "moonbitlang/core/env",
   "moonbitlang/core/math",
   "moonbitlang/core/string",

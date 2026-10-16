@@ -1,13 +1,12 @@
 # moonwind
 
-Weather computation in pure MoonBit: humidity, apparent temperature, pressure
-and altitude, the Beaufort scale and wind barbs — the questions anyone asks of
-a weather report — plus the flight side, the winds and temperatures aloft (FD)
-bulletins and the wind-triangle, runway and great-circle route calculations
-that turn them into headings, ground speeds and crosswind components. The two
-halves share one set of units and one standard atmosphere, so a dew point, a
-density altitude and a flight plan all come out of the same numbers.
-`cmd/main` is a demo that plans a route from the command line.
+Flight planning from winds-aloft forecasts, in pure MoonBit.
+
+It reads a winds and temperatures aloft bulletin, interpolates the wind between
+the levels the bulletin forecasts, and turns it into the numbers a flight plan
+is made of: a heading, a ground speed, a headwind and a crosswind for every
+leg, the time each leg takes, the fuel the flight needs, and the level worth
+flying.
 
 ```moonbit nocheck
 ///|
@@ -19,6 +18,69 @@ let station = bulletin.station("ABR").unwrap()
 ///|
 let level = station.level_at(24000).unwrap() // wind and temperature
 ```
+
+## What this library is, and what it is not
+
+The core responsibility is one conversion:
+
+> **a winds-aloft forecast in, a flight plan out.**
+
+Everything the library decides — which level to fly, what the wind is worth,
+what has to go in the tanks — is arithmetic over that one chain, and the
+package is arranged around it rather than around a list of formulae.
+
+Two things in the MoonBit ecosystem already cover ground this library touches.
+The boundary is drawn deliberately:
+
+| Already covered | By | What moonwind does about it |
+| --- | --- | --- |
+| Meteorological calculation: humidity, dew point, apparent temperature, heat index, density, unit conversion | `SupremeHuaji/MoonMet`, a MetPy-shaped library | Keeps only the parts a flight plan needs, and labels them as support |
+| Aviation weather **report** parsing: METAR, SPECI, TAF | `jshsj124/moonaerowx` | Nothing at all. moonwind does not read METAR or TAF |
+
+What neither covers, and what this library is for: the winds and temperatures
+aloft **forecast** product, the interpolation of wind between the levels it
+forecasts, and the flight-planning calculations built on top. A wind triangle,
+a runway crosswind component, a great-circle leg with a time on it, an
+altitude trade study, a fuel figure — none of those exist elsewhere in
+MoonBit.
+
+The weather calculations beyond that end (humidity, apparent temperature,
+pressure and altitude, the Beaufort scale, wind barbs) are kept because the
+flight side leans on them — density altitude reads a dew point, and a
+forecast temperature is a standard-atmosphere deviation — but they are the
+library's support, not its subject.
+
+## The forecast: WMO WINTEM and the US FD products
+
+The product this library reads is the winds and temperatures aloft forecast, a
+fixed-column text product issued several times a day.
+
+Its **standard** is WMO **FM 51-XI Ext.** (WINTEM). National weather services
+publish it in their own national form, and the form implemented here is the
+**United States** one — the FAA / NOAA **FD** product that the Aviation
+Weather Center distributes, whose bulletins carry the `FD` product
+designators.
+
+That distinction is the point of this section: the parser implements the *US
+national encoding of a WMO format*, not every national encoding of it.
+
+### Compatibility
+
+| | |
+| --- | --- |
+| Products read | `FD1US1` and `FD2US1` (nine forecast levels), `FD8US7` (two levels) |
+| Coverage | the products the Aviation Weather Center publishes for the contiguous United States, Alaska and the Pacific |
+| Levels | whatever the `FT` header line lists; the column layout is derived from that line rather than hard-coded, so a product with a different level set reads without a code change |
+| Encodings handled | `ddss` winds including the `9900` light-and-variable case and the 100 kt-and-over direction offset; `+TT` / `-TT` temperatures; the sign-dropped temperatures above `TEMPS NEG ABV n`; the WMO abbreviated heading; the `DATA BASED ON`, `VALID` and `FOR USE` time lines; the trailing list of stations that were not received |
+| Round trip | a parsed bulletin re-formats byte for byte |
+| **Not** read | WINTEM in any other national encoding; METAR, SPECI or TAF; products whose station lines do not follow the fixed-column form |
+
+### The cases the tests run against
+
+Three real products captured from the Aviation Weather Center text data API:
+`FD1US1`, `FD2US1` and the high-level `FD8US7`. For each, the tests assert
+that parsing and re-formatting reproduces the product byte for byte, and the
+command line demo plans a route against the same three.
 
 ## Bulletins
 
@@ -99,6 +161,15 @@ let standard = @moonwind.isa_temperature(24000.0) // -32.5488
 ///|
 let deviation = @moonwind.isa_deviation(-25.0, 24000.0) // 7.5488, warmer than standard
 ```
+
+## Supporting weather calculations
+
+The rest of this README is what the flight side leans on: a wind triangle
+needs a wind, a forecast temperature is a standard-atmosphere deviation, and
+density altitude reads a dew point. It is documented here because it ships in
+the package, but for meteorological work in general the library to reach for
+is [`MoonMet`](https://mooncakes.io/docs/SupremeHuaji/MoonMet), which covers
+more of it.
 
 ## Humidity
 
@@ -420,6 +491,55 @@ A leg that has no forecast at that altitude is reported with
 the airspeed, so the ground speed comes out at or below zero — with
 `FlightError::NoGroundSpeed`, rather than being given a time that means
 nothing.
+
+## The level to fly
+
+A bulletin forecasts several levels, and which one is worth flying is a
+question the legs already answer. `plans_at_levels` plans the route at every
+level the station forecasts and hands them back fastest first:
+
+```moonbit nocheck
+///|
+let plans = route.plans_at_levels(station, 120.0) // airspeed in knots
+
+///|
+let best = route.fastest_level(station, 120.0).unwrap()
+
+///|
+best.altitude()           // the level the wind makes cheapest
+best.total_time_hours()
+```
+
+A level the station does not forecast, or one whose wind leaves no ground
+speed, is left out rather than sinking the study: a level that cannot be flown
+is not an answer, but it is not a reason to stop asking about the others.
+
+### What the wind is worth
+
+The route and the airspeed do not change with height, so the still-air time is
+the same at every level and the whole difference between the plans is the
+wind's doing:
+
+```moonbit nocheck
+///|
+plan.still_air_time_hours() // the distance at the airspeed, with no wind
+plan.wind_effect_hours()    // positive when the wind costs, negative when it pays
+```
+
+## Fuel and endurance
+
+The fuel a plan needs is its time at a burn rate, with a reserve carried as
+minutes of flying:
+
+```moonbit nocheck
+///|
+let fuel = plan.fuel(8.0, 45.0) // 8 gallons an hour, 45 minutes of reserve
+
+///|
+fuel.trip_fuel()    // what the flight itself burns
+fuel.reserve_fuel() // what the reserve needs
+fuel.total_fuel()   // what has to be aboard
+```
 
 ## Running the demo
 

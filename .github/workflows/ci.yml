@@ -1,8 +1,9 @@
 name: CI
 
 # Everything the module claims: it compiles without warnings, it is formatted,
-# its checked-in interfaces match the source, its tests pass, and its
-# benchmarks run. Each of these also runs locally with the same commands.
+# its checked-in interfaces match the source, its tests pass, its benchmarks
+# run, and the demo plans a route. Each of these also runs locally with the
+# same command.
 on:
   push:
     branches: ["main"]
@@ -39,6 +40,15 @@ jobs:
 
       - name: Tests
         run: moon test
+
+      # The demo is the readable half of the contract: a plan, the levels a
+      # forecast makes available, and what the fuel comes to.
+      - name: Demo
+        run: |
+          moon run cmd/main
+          moon run cmd/main -- --levels --burn 8 --reserve 45
+          moon run cmd/main -- --product fd8us7 --altitude 45000
+          moon run cmd/main -- --list
 
       # The target is wasm, as the module declares, so no C toolchain is
       # needed and the numbers stay comparable with the local run.

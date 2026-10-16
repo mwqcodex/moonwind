@@ -14,8 +14,8 @@
 ///
 /// A station does not necessarily report every level of the product: a column
 /// the bulletin leaves blank is simply absent.
-pub fn StationWinds::altitudes(self : StationWinds) -> Array[Int] {
-  let out : Array[Int] = []
+pub fn StationWinds::altitudes(self : StationWinds) -> Array[Int32] {
+  let out : Array[Int32] = []
   for level in self.levels {
     out.push(level.altitude)
   }
@@ -24,7 +24,7 @@ pub fn StationWinds::altitudes(self : StationWinds) -> Array[Int] {
 
 ///|
 /// The lowest altitude this station reports, in feet.
-pub fn StationWinds::lowest_altitude(self : StationWinds) -> Int? {
+pub fn StationWinds::lowest_altitude(self : StationWinds) -> Int32? {
   if self.levels.length() == 0 {
     None
   } else {
@@ -34,7 +34,7 @@ pub fn StationWinds::lowest_altitude(self : StationWinds) -> Int? {
 
 ///|
 /// The highest altitude this station reports, in feet.
-pub fn StationWinds::highest_altitude(self : StationWinds) -> Int? {
+pub fn StationWinds::highest_altitude(self : StationWinds) -> Int32? {
   if self.levels.length() == 0 {
     None
   } else {
@@ -51,7 +51,7 @@ pub fn StationWinds::highest_altitude(self : StationWinds) -> Int? {
 /// reports nothing on both sides of `altitude`.
 pub fn StationWinds::vector_at(
   self : StationWinds,
-  altitude : Int,
+  altitude : Int32,
 ) -> WindVector? {
   match self.level_at(altitude) {
     Some(level) => return Some(WindVector::from_wind(level.wind))
@@ -78,7 +78,7 @@ pub fn StationWinds::vector_at(
 /// which is the case at 3,000 ft, where the product never forecasts one.
 pub fn StationWinds::temperature_at(
   self : StationWinds,
-  altitude : Int,
+  altitude : Int32,
 ) -> Double? {
   match self.level_at(altitude) {
     Some(level) =>
@@ -115,7 +115,7 @@ pub fn StationWinds::temperature_at(
 /// interpolated between the levels that carry one.
 fn StationWinds::bracketing_levels(
   self : StationWinds,
-  altitude : Int,
+  altitude : Int32,
   usable : (Level) -> Bool,
 ) -> (Level?, Level?) {
   let mut lower : Level? = None
@@ -136,6 +136,6 @@ fn StationWinds::bracketing_levels(
 
 ///|
 /// Where `altitude` falls between `low` and `high`, as a fraction from 0 to 1.
-fn fraction_between(altitude : Int, low : Int, high : Int) -> Double {
+fn fraction_between(altitude : Int32, low : Int32, high : Int32) -> Double {
   (altitude - low).to_double() / (high - low).to_double()
 }

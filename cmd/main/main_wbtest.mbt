@@ -6,7 +6,7 @@ fn cli_close(actual : Double, expected : Double, tolerance : Double) -> Bool {
 
 ///|
 /// A wind from its reported direction and speed.
-fn wind(direction : Int, speed : Int) -> @moonwind.WindVector {
+fn wind(direction : Int32, speed : Int32) -> @moonwind.WindVector {
   @moonwind.WindVector::from_wind(@moonwind.Wind::new(Some(direction), speed))
 }
 

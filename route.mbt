@@ -113,7 +113,7 @@ pub fn Route::distance(self : Route) -> Double {
 /// The hop is walked from its two ends, which are read once for the whole
 /// hop: cutting a route into many legs costs the same trigonometry whether a
 /// hop is cut in two or in twenty.
-pub fn Route::subdivided(self : Route, count : Int) -> Route {
+pub fn Route::subdivided(self : Route, count : Int32) -> Route {
   let points : Array[Coordinate] = []
   if count < 1 {
     for point in self.points {
@@ -224,7 +224,7 @@ pub fn RouteLeg::time_hours(self : RouteLeg) -> Double {
 /// the wind it was planned with, and the totals over the whole route.
 pub struct RoutePlan {
   source : String?
-  altitude : Int
+  altitude : Int32
   airspeed : Double
   legs : Array[RouteLeg]
 }
@@ -238,7 +238,7 @@ pub fn RoutePlan::source(self : RoutePlan) -> String? {
 
 ///|
 /// The altitude the route is planned at, in feet.
-pub fn RoutePlan::altitude(self : RoutePlan) -> Int {
+pub fn RoutePlan::altitude(self : RoutePlan) -> Int32 {
   self.altitude
 }
 
@@ -290,8 +290,8 @@ pub fn RoutePlan::total_time_hours(self : RoutePlan) -> Double {
 /// rather than being planned with a time that means nothing.
 pub fn Route::plan_with(
   self : Route,
-  wind_at : (Coordinate, Int) -> WindVector?,
-  altitude : Int,
+  wind_at : (Coordinate, Int32) -> WindVector?,
+  altitude : Int32,
   airspeed : Double,
 ) -> RoutePlan raise FlightError {
   let legs : Array[RouteLeg] = []
@@ -319,7 +319,7 @@ pub fn Route::plan_with(
 pub fn Route::plan(
   self : Route,
   station : StationWinds,
-  altitude : Int,
+  altitude : Int32,
   airspeed : Double,
 ) -> RoutePlan raise FlightError {
   let plan = self.plan_with(

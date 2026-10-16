@@ -36,10 +36,10 @@ pub suberror WindBarbError {
 /// A wind drawn as a barb: the direction the staff points along, in tens of
 /// degrees, and the pennants, full barbs and half barbs hanging off it.
 pub struct WindBarb {
-  direction_tens : Int
-  pennants : Int
-  full_barbs : Int
-  half_barbs : Int
+  direction_tens : Int32
+  pennants : Int32
+  full_barbs : Int32
+  half_barbs : Int32
 }
 
 ///|
@@ -84,20 +84,20 @@ let calm_ascii : String = "O"
 
 ///|
 /// The knots a pennant counts.
-let knots_per_pennant : Int = 50
+let knots_per_pennant : Int32 = 50
 
 ///|
 /// The knots a full barb counts.
-let knots_per_full_barb : Int = 10
+let knots_per_full_barb : Int32 = 10
 
 ///|
 /// The knots a half barb counts.
-let knots_per_half_barb : Int = 5
+let knots_per_half_barb : Int32 = 5
 
 ///|
 /// The direction a wind out of the north is written as, in tens of degrees:
 /// 36, so that 0 can mean "no direction" and still be told apart from it.
-let north_direction_tens : Int = 36
+let north_direction_tens : Int32 = 36
 
 ///|
 /// The wind barb of a reported `wind`: its direction in tens of degrees and its
@@ -112,7 +112,7 @@ pub fn WindBarb::from_wind(wind : Wind) -> WindBarb raise WindBarbError {
 /// `None` is written as no direction at all — tens of 0 — and a direction of
 /// 0 degrees, the north, as 36.
 pub fn WindBarb::from_knots(
-  direction : Int?,
+  direction : Int32?,
   knots : Double,
 ) -> WindBarb raise WindBarbError {
   if knots < 0.0 {
@@ -142,25 +142,25 @@ pub fn WindBarb::from_knots(
 /// The direction the staff points along, in tens of degrees: 0 when the wind
 /// has no direction, 36 for a wind out of the north, and otherwise the
 /// direction over ten.
-pub fn WindBarb::direction_tens(self : WindBarb) -> Int {
+pub fn WindBarb::direction_tens(self : WindBarb) -> Int32 {
   self.direction_tens
 }
 
 ///|
 /// How many pennants hang off the staff, each of them 50 knots.
-pub fn WindBarb::pennants(self : WindBarb) -> Int {
+pub fn WindBarb::pennants(self : WindBarb) -> Int32 {
   self.pennants
 }
 
 ///|
 /// How many full barbs hang off the staff, each of them 10 knots.
-pub fn WindBarb::full_barbs(self : WindBarb) -> Int {
+pub fn WindBarb::full_barbs(self : WindBarb) -> Int32 {
   self.full_barbs
 }
 
 ///|
 /// How many half barbs hang off the staff, each of them 5 knots.
-pub fn WindBarb::half_barbs(self : WindBarb) -> Int {
+pub fn WindBarb::half_barbs(self : WindBarb) -> Int32 {
   self.half_barbs
 }
 
@@ -244,7 +244,7 @@ fn WindBarb::render(
 
 ///|
 /// `glyph` written `count` times.
-fn append_glyphs(out : StringBuilder, glyph : String, count : Int) -> Unit {
+fn append_glyphs(out : StringBuilder, glyph : String, count : Int32) -> Unit {
   for i = 0; i < count; i = i + 1 {
     out.write_string(glyph)
   }

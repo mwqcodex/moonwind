@@ -183,6 +183,16 @@ pub fn Coordinate::longitude(Self) -> Double
 pub fn Coordinate::midpoint(Self, Self) -> Self
 pub fn Coordinate::new(Double, Double) -> Self
 
+pub struct FuelPlan {
+  trip_hours : Double
+  trip_fuel : Double
+  reserve_fuel : Double
+}
+pub fn FuelPlan::reserve_fuel(Self) -> Double
+pub fn FuelPlan::total_fuel(Self) -> Double
+pub fn FuelPlan::trip_fuel(Self) -> Double
+pub fn FuelPlan::trip_hours(Self) -> Double
+
 pub struct Level {
   altitude : Int
   wind : Wind
@@ -196,9 +206,11 @@ pub struct Route {
   points : Array[Coordinate]
 }
 pub fn Route::distance(Self) -> Double
+pub fn Route::fastest_level(Self, StationWinds, Double) -> RoutePlan?
 pub fn Route::new(Array[Coordinate]) -> Self
 pub fn Route::plan(Self, StationWinds, Int, Double) -> RoutePlan raise FlightError
 pub fn Route::plan_with(Self, (Coordinate, Int) -> WindVector?, Int, Double) -> RoutePlan raise FlightError
+pub fn Route::plans_at_levels(Self, StationWinds, Double) -> Array[RoutePlan]
 pub fn Route::points(Self) -> Array[Coordinate]
 pub fn Route::segments(Self) -> Array[RouteSegment]
 pub fn Route::subdivided(Self, Int) -> Self
@@ -227,10 +239,13 @@ pub struct RoutePlan {
 }
 pub fn RoutePlan::airspeed(Self) -> Double
 pub fn RoutePlan::altitude(Self) -> Int
+pub fn RoutePlan::fuel(Self, Double, Double) -> FuelPlan
 pub fn RoutePlan::legs(Self) -> Array[RouteLeg]
 pub fn RoutePlan::source(Self) -> String?
+pub fn RoutePlan::still_air_time_hours(Self) -> Double
 pub fn RoutePlan::total_distance(Self) -> Double
 pub fn RoutePlan::total_time_hours(Self) -> Double
+pub fn RoutePlan::wind_effect_hours(Self) -> Double
 
 pub struct RouteSegment {
   from : Coordinate

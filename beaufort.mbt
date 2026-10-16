@@ -30,7 +30,7 @@ pub suberror BeaufortError {
 /// A wind on the Beaufort scale, held as the force alone: the band it falls in
 /// carries the description and the bounds.
 pub struct Beaufort {
-  force : Int
+  force : Int32
 }
 
 ///|
@@ -63,7 +63,7 @@ let beaufort_descriptions : Array[String] = [
 ///|
 /// The force `speed` falls in for one published table: the last force whose
 /// lower bound it reaches.
-fn force_in_table(thresholds : Array[Double], speed : Double) -> Int {
+fn force_in_table(thresholds : Array[Double], speed : Double) -> Int32 {
   let mut force = 0
   for index = 1; index < thresholds.length(); index = index + 1 {
     if speed >= thresholds[index] {
@@ -117,7 +117,7 @@ pub fn Beaufort::from_wind(wind : Wind) -> Beaufort raise BeaufortError {
 
 ///|
 /// The force, from 0 to 12.
-pub fn Beaufort::force(self : Beaufort) -> Int {
+pub fn Beaufort::force(self : Beaufort) -> Int32 {
   self.force
 }
 

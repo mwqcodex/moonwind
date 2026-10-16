@@ -26,9 +26,9 @@ let demonstration_route : Array[@moonwind.Coordinate] = [
 priv struct Request {
   product : String
   station : String
-  altitude : Int
+  altitude : Int32
   airspeed : Double
-  legs : Int
+  legs : Int32
   waypoints : Array[@moonwind.Coordinate]
   /// Compare every forecast level instead of planning one.
   levels : Bool
@@ -208,7 +208,7 @@ fn command(arguments : Array[String]) -> Command {
 
 ///|
 /// The argument after an option, when the command line has one.
-fn following(arguments : Array[String], index : Int) -> String? {
+fn following(arguments : Array[String], index : Int32) -> String? {
   if index + 1 < arguments.length() {
     Some(arguments[index + 1])
   } else {
@@ -243,7 +243,7 @@ fn degrees(text : StringView) -> Double? {
 
 ///|
 /// A whole number.
-fn whole_number(text : String) -> Int? {
+fn whole_number(text : String) -> Int32? {
   let value = @string.parse_int(text) catch { _ => return None }
   Some(value)
 }
@@ -270,7 +270,7 @@ fn product_text(name : String) -> String? {
 ///|
 /// A number written with `decimals` digits after the point, which is how a
 /// flight plan is read: 104.591137317 nm is 104.6 nm.
-fn fixed(value : Double, decimals : Int) -> String {
+fn fixed(value : Double, decimals : Int32) -> String {
   if decimals < 1 {
     return @math.round(value).to_string()
   }
@@ -538,7 +538,7 @@ fn print_levels(
 
 ///|
 /// `text` padded on the right, so a column of them lines up.
-fn pad_right(text : String, width : Int) -> String {
+fn pad_right(text : String, width : Int32) -> String {
   let mut out = text
   while out.length() < width {
     out = out + " "
@@ -551,7 +551,7 @@ fn pad_right(text : String, width : Int) -> String {
 /// found to be there.
 fn station_wind(
   station : @moonwind.StationWinds,
-  altitude : Int,
+  altitude : Int32,
 ) -> @moonwind.WindVector {
   match station.vector_at(altitude) {
     Some(wind) => wind
@@ -561,7 +561,10 @@ fn station_wind(
 
 ///|
 /// The temperature a station forecasts at an altitude, when it forecasts one.
-fn temperature_text(station : @moonwind.StationWinds, altitude : Int) -> String {
+fn temperature_text(
+  station : @moonwind.StationWinds,
+  altitude : Int32,
+) -> String {
   match station.temperature_at(altitude) {
     Some(celsius) => ", \{fixed(celsius, 1)} C"
     None => ""

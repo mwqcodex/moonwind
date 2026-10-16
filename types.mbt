@@ -22,8 +22,8 @@ pub suberror FdError {
 /// always multiples of 10 degrees, as the wire format carries tens of
 /// degrees.
 pub struct Wind {
-  direction : Int?
-  speed : Int
+  direction : Int32?
+  speed : Int32
 }
 
 ///|
@@ -32,9 +32,9 @@ pub struct Wind {
 /// `None` when the product does not forecast one, which is always the case at
 /// 3,000 ft and at levels close to the station elevation.
 pub struct Level {
-  altitude : Int
+  altitude : Int32
   wind : Wind
-  temperature : Int?
+  temperature : Int32?
 }
 
 ///|
@@ -60,7 +60,7 @@ pub struct Bulletin {
   /// The `FT` column header line, verbatim.
   level_header : String
   /// Forecast levels in column order, in feet MSL, parsed from `level_header`.
-  altitudes : Array[Int]
+  altitudes : Array[Int32]
   /// The WMO abbreviated heading, such as `FBUS31 KWNO 221358`.
   wmo_header : String?
   /// The product designator, such as `FD1US1`.
@@ -73,7 +73,7 @@ pub struct Bulletin {
   use_window : String?
   /// The altitude above which temperatures are reported without a sign,
   /// parsed from `TEMPS NEG ABV n`; 24,000 ft in current products.
-  temps_negative_above : Int?
+  temps_negative_above : Int32?
   stations : Array[StationWinds]
   /// `stations` by identifier, so that finding one station does not look at
   /// the whole product.
@@ -87,18 +87,18 @@ pub struct Bulletin {
 /// A wind from the direction it blows from and its speed, which is how one is
 /// reported: `Wind::new(Some(150), 14)` is 150 degrees at 14 kt, and
 /// `Wind::new(None, 0)` is light and variable.
-pub fn Wind::new(direction : Int?, speed : Int) -> Wind {
+pub fn Wind::new(direction : Int32?, speed : Int32) -> Wind {
   { direction, speed, }
 }
 
 ///|
 /// Accessors.
-pub fn Wind::direction(self : Wind) -> Int? {
+pub fn Wind::direction(self : Wind) -> Int32? {
   self.direction
 }
 
 ///|
-pub fn Wind::speed(self : Wind) -> Int {
+pub fn Wind::speed(self : Wind) -> Int32 {
   self.speed
 }
 
@@ -109,7 +109,7 @@ pub fn Wind::is_light_and_variable(self : Wind) -> Bool {
 }
 
 ///|
-pub fn Level::altitude(self : Level) -> Int {
+pub fn Level::altitude(self : Level) -> Int32 {
   self.altitude
 }
 
@@ -119,7 +119,7 @@ pub fn Level::wind(self : Level) -> Wind {
 }
 
 ///|
-pub fn Level::temperature(self : Level) -> Int? {
+pub fn Level::temperature(self : Level) -> Int32? {
   self.temperature
 }
 
@@ -135,7 +135,7 @@ pub fn StationWinds::levels(self : StationWinds) -> Array[Level] {
 
 ///|
 /// The level at exactly `altitude` feet, if the station reports one.
-pub fn StationWinds::level_at(self : StationWinds, altitude : Int) -> Level? {
+pub fn StationWinds::level_at(self : StationWinds, altitude : Int32) -> Level? {
   for level in self.levels {
     if level.altitude == altitude {
       return Some(level)
@@ -152,7 +152,7 @@ pub fn Bulletin::stations(self : Bulletin) -> Array[StationWinds] {
 ///|
 /// The levels the product forecasts, in feet MSL, as the `FT` header lists
 /// them. Stations do not all report every one of them.
-pub fn Bulletin::altitudes(self : Bulletin) -> Array[Int] {
+pub fn Bulletin::altitudes(self : Bulletin) -> Array[Int32] {
   self.altitudes
 }
 
@@ -190,7 +190,7 @@ pub fn Bulletin::use_window(self : Bulletin) -> String? {
 ///|
 /// The altitude above which temperatures are reported without a sign, in feet
 /// MSL, from `TEMPS NEG ABV n`; 24,000 ft in current products.
-pub fn Bulletin::temps_negative_above(self : Bulletin) -> Int? {
+pub fn Bulletin::temps_negative_above(self : Bulletin) -> Int32? {
   self.temps_negative_above
 }
 

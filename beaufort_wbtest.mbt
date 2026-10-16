@@ -3,7 +3,7 @@
 /// 4, force 4 at 11, and a hurricane at 64, which is where everything above it
 /// stays.
 test "the knots table reads the scale's own bounds" {
-  let cases : Array[(Double, Int)] = [
+  let cases : Array[(Double, Int32)] = [
     (0.0, 0),
     (0.5, 0),
     (1.0, 1),
@@ -26,7 +26,7 @@ test "the knots table reads the scale's own bounds" {
 /// The metres-per-second table: 0.3 m/s is force 1, 1.6 force 2, 3.4 force 3,
 /// and 32.7 a hurricane. Below 0.3 it is calm.
 test "the metres-per-second table reads its own bounds" {
-  let cases : Array[(Double, Int)] = [
+  let cases : Array[(Double, Int32)] = [
     (0.0, 0),
     (0.2, 0),
     (0.3, 1),
@@ -51,7 +51,7 @@ test "the metres-per-second table reads its own bounds" {
 /// The kilometres-per-hour table: 1 km/h is force 1, 6 force 2, 12 force 3, and
 /// 118 a hurricane.
 test "the kilometres-per-hour table reads its own bounds" {
-  let cases : Array[(Double, Int)] = [
+  let cases : Array[(Double, Int32)] = [
     (0.0, 0),
     (0.9, 0),
     (1.0, 1),

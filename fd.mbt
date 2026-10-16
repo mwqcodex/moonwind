@@ -29,7 +29,7 @@
 ///
 /// A carriage return before the newline is not part of the line, so a product
 /// that comes back from a server with CRLF endings parses the same way.
-fn line_bounds(text : StringView, start : Int) -> (Int, Int) {
+fn line_bounds(text : StringView, start : Int32) -> (Int32, Int32) {
   let n = text.length()
   let mut end = start
   while end < n && text.at(end) != '\n' {
@@ -67,7 +67,7 @@ fn first_token(text : StringView) -> StringView {
 
 ///|
 /// Digits of `text`, or `None` when it is empty or holds anything else.
-fn parse_int(text : StringView) -> Int? {
+fn parse_int(text : StringView) -> Int32? {
   let t = text.trim()
   if t.length() == 0 {
     return None
@@ -111,8 +111,8 @@ fn is_station_line(line : StringView) -> Bool {
 /// four characters wide when no temperature is carried (the 3,000 ft level),
 /// six when the temperature is an unsigned magnitude above 24,000 ft, and
 /// seven otherwise.
-pub fn field_layout(altitudes : Array[Int]) -> Array[(Int, Int)] {
-  let out : Array[(Int, Int)] = []
+pub fn field_layout(altitudes : Array[Int32]) -> Array[(Int32, Int32)] {
+  let out : Array[(Int32, Int32)] = []
   let mut start = 4
   for altitude in altitudes {
     let width = if altitude == 3000 {
@@ -130,7 +130,7 @@ pub fn field_layout(altitudes : Array[Int]) -> Array[(Int, Int)] {
 
 ///|
 /// Two decimal digits starting at `at`.
-fn digits2(text : StringView, at : Int) -> Int raise FdError {
+fn digits2(text : StringView, at : Int32) -> Int32 raise FdError {
   if at < 0 || at + 2 > text.length() {
     raise FdError::BadWindGroup(text.to_owned())
   }
@@ -180,8 +180,8 @@ fn decode_temperature(
   text : StringView,
   unsigned : Bool,
   station : String,
-  altitude : Int,
-) -> Int raise FdError {
+  altitude : Int32,
+) -> Int32 raise FdError {
   if text.length() == 0 {
     raise FdError::BadTemperature("\{station} \{altitude}")
   }
@@ -211,8 +211,8 @@ fn decode_temperature(
 /// Parse one station line.
 fn parse_station_line(
   line : StringView,
-  altitudes : Array[Int],
-  layout : Array[(Int, Int)],
+  altitudes : Array[Int32],
+  layout : Array[(Int32, Int32)],
 ) -> StationWinds raise FdError {
   let station = line[0:3].to_owned()
   let levels : Array[Level] = []
@@ -248,12 +248,12 @@ fn parse_station_line(
 
 ///|
 /// The levels listed in an `FT` header line.
-fn parse_level_header(line : StringView) -> Array[Int] raise FdError {
+fn parse_level_header(line : StringView) -> Array[Int32] raise FdError {
   let rest = match after_prefix(line, "FT") {
     Some(rest) => rest
     None => raise FdError::BadLevelHeader(line.to_owned())
   }
-  let altitudes : Array[Int] = []
+  let altitudes : Array[Int32] = []
   for token in rest.split(" ") {
     match parse_int(token) {
       Some(v) => altitudes.push(v)
@@ -305,7 +305,7 @@ pub fn parse_bulletin(text : String) -> Bulletin raise FdError {
   let mut based_on : String? = None
   let mut valid : String? = None
   let mut use_window : String? = None
-  let mut temps_negative_above : Int? = None
+  let mut temps_negative_above : Int32? = None
   let mut wmo_header : String? = None
   let mut designator : String? = None
   for line in header {
@@ -392,7 +392,7 @@ pub fn parse_bulletin(text : String) -> Bulletin raise FdError {
 
 ///|
 /// Two decimal digits, zero padded, written straight into `out`.
-fn write_two_digits(out : StringBuilder, v : Int) -> Unit {
+fn write_two_digits(out : StringBuilder, v : Int32) -> Unit {
   out.write_char(('0'.to_int() + v / 10 % 10).unsafe_to_char())
   out.write_char(('0'.to_int() + v % 10).unsafe_to_char())
 }
@@ -437,8 +437,8 @@ pub fn encode_wind(wind : Wind) -> String raise FdError {
 /// temperatures are always negative, and signed below.
 fn write_temperature(
   out : StringBuilder,
-  temperature : Int,
-  altitude : Int,
+  temperature : Int32,
+  altitude : Int32,
 ) -> Unit raise FdError {
   let magnitude = if temperature < 0 { -temperature } else { temperature }
   if magnitude > 99 {
@@ -459,8 +459,8 @@ fn write_temperature(
 /// Encode a temperature field for a level: unsigned above 24,000 ft, where
 /// temperatures are always negative, and signed below.
 pub fn encode_temperature(
-  temperature : Int,
-  altitude : Int,
+  temperature : Int32,
+  altitude : Int32,
 ) -> String raise FdError {
   let out = StringBuilder(size_hint=3)
   write_temperature(out, temperature, altitude)
@@ -471,7 +471,7 @@ pub fn encode_temperature(
 /// The width of a level's field: the four characters of the wind group, plus
 /// three for a signed temperature, or two above 24,000 ft, where the sign is
 /// not carried.
-fn field_length(level : Level) -> Int {
+fn field_length(level : Level) -> Int32 {
   match level.temperature {
     None => 4
     Some(_) => if level.altitude > 24000 { 6 } else { 7 }
@@ -494,7 +494,7 @@ pub fn encode_level(level : Level) -> String raise FdError {
 /// Format one station line, placing each level in its column.
 pub fn format_station(
   station : StationWinds,
-  altitudes : Array[Int],
+  altitudes : Array[Int32],
 ) -> String raise FdError {
   let layout = field_layout(altitudes)
   let out = StringBuilder(size_hint=80)

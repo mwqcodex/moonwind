@@ -24,7 +24,7 @@ pub suberror FlightError {
   CrosswindExceedsAirspeed(Double, Double)
   /// No level is forecast at this altitude, which is the payload: the station
   /// reports its levels only up to the top of the product.
-  NoForecast(Int)
+  NoForecast(Int32)
   /// The wind along the leg beats the aeroplane, leaving a ground speed of
   /// zero or less — a headwind stronger than the airspeed — so the leg takes
   /// no time that means anything. The payload is the ground speed.

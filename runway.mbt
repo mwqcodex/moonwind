@@ -14,7 +14,7 @@ pub struct Runway {
   /// The designator as written, such as `27` or `09L`.
   designator : String
   /// The magnetic heading of the runway, in degrees: two digits times ten.
-  heading : Int
+  heading : Int32
 }
 
 ///|
@@ -23,7 +23,7 @@ pub fn Runway::designator(self : Runway) -> String {
 }
 
 ///|
-pub fn Runway::heading(self : Runway) -> Int {
+pub fn Runway::heading(self : Runway) -> Int32 {
   self.heading
 }
 
@@ -65,7 +65,7 @@ fn side_of(designator : String) -> String? {
 
 ///|
 /// Two decimal digits, zero padded, for a runway heading.
-fn two_runway_digits(heading : Int) -> String? {
+fn two_runway_digits(heading : Int32) -> String? {
   if heading % 10 != 0 {
     return None
   }
@@ -114,7 +114,7 @@ pub fn Runway::parse(designator : String) -> Runway? {
 
 ///|
 /// The value of a string of one or two digits.
-fn parse_digits(text : String) -> Int? {
+fn parse_digits(text : String) -> Int32? {
   if text.length() == 0 {
     return None
   }

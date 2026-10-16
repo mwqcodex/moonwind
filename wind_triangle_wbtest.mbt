@@ -10,7 +10,7 @@ fn triangle_close(
 
 ///|
 /// The wind as a vector, from its reported direction and speed.
-fn vector(direction : Int, speed : Int) -> WindVector {
+fn vector(direction : Int32, speed : Int32) -> WindVector {
   WindVector::from_wind({ direction: Some(direction), speed, })
 }
 
